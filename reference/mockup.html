@@ -1,0 +1,692 @@
+<title>Coding Tutor workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: graph-paper desk. Controls rail | editor + run panel | tutor chat. Code surfaces stay dark in both themes. */
+:root{
+  --paper:#F3F5F8; --grid:#E1E6EE; --panel:#FFFFFF; --ink:#1D2B4F; --ink-soft:#56627E; --line:#CDD5E1;
+  --pencil:#F2C14E; --pencil-ink:#3A2C00; --red:#B8352E; --red-bg:#FBE9E7; --mint:#2F8F6F; --mint-bg:#E3F3EC;
+  --user-bg:#1D2B4F; --user-ink:#FFFFFF;
+  --ed-bg:#17213A; --ed-gutter:#111A2E; --ed-ink:#E6EBF5; --ed-dim:#6D7A99; --ed-line:#2A3657; --ed-red:#FF8A80; --ed-mint:#7FD8B4; --ed-yellow:#F2C14E;
+  --font-ui:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-code:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#121828; --grid:#1B2338; --panel:#18203A; --ink:#E6EBF5; --ink-soft:#9AA6C3; --line:#2C3756;
+    --pencil:#F2C14E; --pencil-ink:#2A2000; --red:#F07A70; --red-bg:#3A1F25; --mint:#5CC79F; --mint-bg:#16332B;
+    --user-bg:#2E3E6B; --user-ink:#FFFFFF;
+    --ed-bg:#0E1526; --ed-gutter:#0A101E; --ed-line:#232E4A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121828; --grid:#1B2338; --panel:#18203A; --ink:#E6EBF5; --ink-soft:#9AA6C3; --line:#2C3756;
+  --pencil:#F2C14E; --pencil-ink:#2A2000; --red:#F07A70; --red-bg:#3A1F25; --mint:#5CC79F; --mint-bg:#16332B;
+  --user-bg:#2E3E6B; --user-ink:#FFFFFF;
+  --ed-bg:#0E1526; --ed-gutter:#0A101E; --ed-line:#232E4A; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  color:var(--ink);background:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;font-family:var(--font-ui);font-size:15px;line-height:1.5;
+}
+button,textarea,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+:focus-visible{outline:3px solid var(--pencil);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1.2fr) minmax(320px,.8fr);height:100%;max-width:1560px;margin:0 auto}
+.rail{background:var(--panel);border-right:1px solid var(--line);padding:18px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.work{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}
+.chat{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper)}
+
+.brand h1{font-size:1.25rem;margin:0;line-height:1.2;text-wrap:balance}
+.brand p{margin:4px 0 0;color:var(--ink-soft);font-size:.85rem}
+.rail h2{font-size:.78rem;margin:0 0 8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+.hint{color:var(--ink-soft);font-size:.82rem;margin:6px 0 0}
+
+.modes{display:flex;flex-direction:column;gap:2px}
+.mode{display:flex;align-items:center;gap:10px;text-align:left;background:transparent;border:0;border-left:4px solid transparent;padding:6px 10px;border-radius:0 6px 6px 0}
+.mode:hover{background:var(--grid)}
+.mode[aria-pressed="true"]{border-left-color:var(--ink);background:var(--grid);font-weight:700}
+
+.ladder{display:flex;align-items:flex-end;gap:5px;height:76px}
+.rung{flex:1;height:var(--h);background:transparent;border:1.5px solid var(--ink);border-radius:6px 6px 2px 2px;font-weight:700;font-size:1.05rem;display:flex;justify-content:center;align-items:flex-start;padding-top:5px}
+.rung.below{background:var(--grid)}
+.rung[aria-checked="true"]{background:var(--pencil);color:var(--pencil-ink);border-color:var(--pencil-ink)}
+.ladder.off .rung{opacity:.35;cursor:not-allowed}
+.level-name{margin:8px 0 0;font-weight:700}
+.reset-note{min-height:1.3em;color:var(--mint);font-size:.82rem;margin:0}
+
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.88rem}
+.check input{margin-top:4px;accent-color:var(--ink)}
+select{width:100%;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);padding:6px 8px;font-size:.88rem}
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:6px;padding:7px 13px;font-weight:700}
+.btn.primary{background:var(--ink);color:var(--panel)}
+.btn.small{padding:4px 10px;font-size:.85rem}
+
+/* Workspace */
+.tabs{display:flex;align-items:stretch;gap:2px;background:var(--panel);border-bottom:1px solid var(--line);padding:8px 10px 0;overflow-x:auto;flex-shrink:0}
+.tab{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-bottom:0;border-radius:7px 7px 0 0;background:var(--paper);padding:5px 6px 5px 10px;white-space:nowrap;font-size:.88rem;flex-shrink:0}
+.tab[aria-selected="true"]{background:var(--ed-bg);color:var(--ed-ink);border-color:var(--ed-bg)}
+.tab .sel{background:none;border:0;padding:0;display:flex;align-items:center;gap:6px}
+.tab .badge{font-family:var(--font-code);font-size:.68rem;border:1px solid currentColor;border-radius:4px;padding:0 4px;opacity:.75}
+.tab .who{font-size:.8rem}
+.tab .x{background:none;border:0;padding:0 4px;opacity:.6;font-size:1rem;line-height:1}
+.tab .x:hover{opacity:1}
+.newtab{display:flex;gap:4px;margin-left:6px;align-items:center;padding-bottom:6px;flex-shrink:0}
+
+.editor{flex:1;min-height:200px;display:flex;background:var(--ed-bg);color:var(--ed-ink);font-family:var(--font-code);font-size:14px;line-height:1.6;position:relative}
+.gutter{margin:0;padding:12px 10px 12px 12px;background:var(--ed-gutter);color:var(--ed-dim);text-align:right;overflow:hidden;user-select:none;min-width:44px;font:inherit;white-space:pre}
+.gutter .err{color:var(--ed-red);font-weight:600}
+.code{flex:1;min-width:0;border:0;resize:none;background:transparent;color:inherit;padding:12px 14px;font:inherit;line-height:inherit;tab-size:4;white-space:pre;overflow:auto;outline:none}
+.code::placeholder{color:var(--ed-dim)}
+.owner{position:absolute;right:12px;top:8px;font-family:var(--font-ui);font-size:.75rem;color:var(--ed-dim);pointer-events:none}
+
+.runbar{display:flex;align-items:center;gap:10px;background:var(--ed-gutter);color:var(--ed-ink);padding:7px 12px;border-top:1px solid var(--ed-line);flex-wrap:wrap;flex-shrink:0}
+.run{background:var(--ed-mint);color:#0B2A1E;border:0;border-radius:6px;padding:5px 14px;font-weight:700}
+.stop{background:transparent;color:var(--ed-red);border:1.5px solid var(--ed-red);border-radius:6px;padding:4px 12px;font-weight:700}
+.runstate{font-size:.82rem;color:var(--ed-dim);margin-right:auto}
+.runbar kbd{font-family:var(--font-code);font-size:.72rem;border:1px solid var(--ed-line);border-radius:4px;padding:0 4px}
+.clearout{background:none;border:0;color:var(--ed-dim);font-size:.82rem;text-decoration:underline}
+
+.output{height:34%;min-height:150px;background:var(--ed-bg);color:var(--ed-ink);border-top:1px solid var(--ed-line);overflow:auto;padding:10px 14px;font-family:var(--font-code);font-size:13px;line-height:1.55;flex-shrink:0}
+.output .line{white-space:pre-wrap;word-break:break-word}
+.output .err{color:var(--ed-red)}
+.output .sys{color:var(--ed-dim);font-style:italic}
+.output .ok{color:var(--ed-mint)}
+.output .typed{color:var(--ed-yellow)}
+.output input.stdin{background:transparent;border:0;border-bottom:1px dashed var(--ed-yellow);color:var(--ed-yellow);font:inherit;width:min(260px,60%);outline:none;padding:0}
+.output table{border-collapse:collapse;margin:4px 0 12px;font-variant-numeric:tabular-nums}
+.output th,.output td{border:1px solid var(--ed-line);padding:3px 10px;text-align:left}
+.output th{color:var(--ed-yellow);font-weight:600}
+.output .tablewrap{overflow-x:auto}
+
+/* Chat */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;flex-shrink:0}
+.status{font-weight:700}
+.status small{font-weight:400;color:var(--ink-soft);margin-left:6px}
+.log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.msg{max-width:100%;padding:10px 14px;border-radius:10px;min-width:0}
+.msg p{margin:0 0 .6em}.msg p:last-child{margin-bottom:0}
+.msg.user{align-self:flex-end;max-width:88%;background:var(--user-bg);color:var(--user-ink);border-bottom-right-radius:2px;white-space:pre-wrap;word-break:break-word}
+.msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:2px}
+.attached{display:block;font-size:.75rem;opacity:.75;margin-top:6px;white-space:normal}
+.chip{display:inline-block;font-size:.74rem;border:1px solid var(--line);border-radius:99px;padding:1px 9px;margin:0 6px 8px 0;color:var(--ink-soft)}
+.chip.fallback{border-color:var(--red);color:var(--red)}
+.chip.tab-made{border-color:var(--mint);color:var(--mint);background:var(--mint-bg)}
+.guard{align-self:flex-start;max-width:100%;background:var(--red-bg);border-left:4px solid var(--red);padding:9px 13px;border-radius:0 8px 8px 0;font-size:.88rem}
+.guard strong{color:var(--red)}
+.guard ul{margin:6px 0 0;padding-left:18px}
+.thinking{color:var(--ink-soft);font-style:italic}
+code{font-family:var(--font-code);font-size:.88em;background:var(--grid);padding:1px 5px;border-radius:4px}
+pre.code-block{position:relative;background:var(--ed-bg);color:var(--ed-ink);padding:24px 12px 10px;border-radius:8px;overflow-x:auto;margin:.6em 0;font-size:.85rem}
+pre.code-block code{background:none;padding:0;color:inherit}
+pre.code-block .lang{position:absolute;top:5px;right:10px;font-size:.72rem;opacity:.7;font-family:var(--font-ui)}
+
+.inspector{border-top:1px solid var(--line);background:var(--panel);max-height:42%;overflow:auto;padding:12px 16px;flex-shrink:0}
+.inspector h3{margin:0 0 4px;font-size:.95rem}
+.inspector p{margin:0 0 8px;color:var(--ink-soft);font-size:.85rem}
+.inspector pre{margin:0 0 14px;font-family:var(--font-code);font-size:.76rem;white-space:pre-wrap;word-break:break-word;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px}
+
+.composer{display:flex;flex-direction:column;gap:6px;padding:10px 16px 14px;border-top:1px solid var(--line);background:var(--panel);flex-shrink:0}
+.composer .row{display:flex;gap:8px}
+.composer textarea{flex:1;min-width:0;min-height:48px;max-height:180px;resize:vertical;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--paper)}
+.attachnote{font-size:.78rem;color:var(--ink-soft)}
+.sr{position:absolute;left:-9999px}
+
+@media (max-width:1100px){
+  .app{grid-template-columns:220px minmax(0,1fr)}
+  .chat{grid-column:1 / -1;border-top:1px solid var(--line);min-height:70vh}
+  .app{height:auto;min-height:100%}
+  .work{min-height:80vh}
+}
+@media (max-width:700px){
+  .app{grid-template-columns:1fr}
+  .rail{border-right:0;border-bottom:1px solid var(--line)}
+  .work{border-right:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <h1>Coding Tutor</h1>
+      <p>Workbench mock. Python and SQL run for real; the tutor's replies are canned.</p>
+    </div>
+
+    <section>
+      <h2 id="mode-h">Mode</h2>
+      <div class="modes" id="modes" role="group" aria-labelledby="mode-h"></div>
+    </section>
+
+    <section>
+      <h2 id="level-h">Help level, next message</h2>
+      <div class="ladder" id="ladder" role="radiogroup" aria-labelledby="level-h"></div>
+      <p class="level-name" id="level-name"></p>
+      <p class="hint" id="level-hint">Goes back to 1 after every message.</p>
+      <p class="reset-note" id="reset-note" aria-live="polite"></p>
+    </section>
+
+    <section>
+      <h2>Checks before you see a reply</h2>
+      <label class="check"><input type="checkbox" id="judge-on" checked> <span>Judge model reviews Levels 1-2</span></label>
+      <label for="behave" class="hint" style="display:block;margin:12px 0 4px">Pretend the tutor model…</label>
+      <select id="behave">
+        <option value="clean">Behaves</option>
+        <option value="code">Adds a code snippet (first try)</option>
+        <option value="verbal">Tells me the fix in words (first try)</option>
+        <option value="stubborn">Keeps breaking the rules</option>
+      </select>
+    </section>
+
+    <section>
+      <button class="btn" id="new-problem">Start new problem</button>
+      <p class="hint">Clears the chat. Your tabs stay.</p>
+    </section>
+  </aside>
+
+  <section class="work" aria-label="Code editor">
+    <div class="tabs" id="tabs" role="tablist" aria-label="Open files"></div>
+    <div class="editor">
+      <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
+      <label for="code" class="sr">Code</label>
+      <textarea class="code" id="code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
+      <span class="owner" id="owner"></span>
+    </div>
+    <div class="runbar">
+      <button class="run" id="run">▶ Run</button>
+      <button class="stop" id="stop" hidden>■ Stop</button>
+      <span class="runstate" id="runstate"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> runs the tab</span>
+      <button class="clearout" id="clearout">Clear output</button>
+    </div>
+    <div class="output" id="output" aria-live="polite" aria-label="Output"></div>
+  </section>
+
+  <section class="chat" aria-label="Tutor chat">
+    <div class="topbar">
+      <div class="status" id="status"></div>
+      <button class="btn small" id="toggle-inspector" aria-expanded="false" aria-controls="inspector">What the tutor receives</button>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <section class="inspector" id="inspector" hidden>
+      <h3>Last request to the tutor model</h3>
+      <p>The app adds mode, level, your open tab and its last output to every message.</p>
+      <pre id="payload">Send a message to see the request.</pre>
+      <h3>Last check by the judge model</h3>
+      <pre id="judge-payload">Send a message at Level 1 or 2 to see the judge's check.</pre>
+    </section>
+    <form class="composer" id="composer">
+      <div class="row">
+        <label for="input" class="sr">Message</label>
+        <textarea id="input" placeholder="Ask about your code. Enter sends, Shift+Enter adds a line."></textarea>
+        <button class="btn primary" type="submit">Send</button>
+      </div>
+      <span class="attachnote" id="attachnote"></span>
+    </form>
+  </section>
+</div>
+
+<script>
+/* ---------- Data ---------- */
+const MODES = {
+  debug:     {label:'Debug',     icon:'🐛', levels:true},
+  plan:      {label:'Planning',  icon:'📋', levels:true},
+  review:    {label:'Review',    icon:'🔍', levels:true},
+  explain:   {label:'Explain',   icon:'💡', levels:false},
+  challenge: {label:'Challenge', icon:'🎯', levels:true}
+};
+const LEVELS = [
+  {name:'Guiding question', rule:'One guiding question. At most 4 sentences. No code of any kind.'},
+  {name:'Concept names',    rule:'Name the concepts only. At most 4 sentences. No code of any kind.'},
+  {name:'Pseudocode',       rule:'Pseudocode only, in a ```pseudo block. No real syntax.'},
+  {name:'Different example',rule:'Working code for an unrelated scenario. Never use the user\'s names or data.'},
+  {name:'Full solution',    rule:'Full working solution with brief comments.'}
+];
+const SYSTEM_PROMPT =
+`You are a coding tutor. The user learns by doing: the struggle is where the learning happens, and giving answers early removes what they came for.
+Every user message starts with a [Mode | Level] tag set by the app. Respond strictly at that level. Never raise it yourself, for any reason, including frustration, task size, or wanting to reassure.
+The app also attaches the user's open editor tab and its last run output. Use them; don't ask the user to paste code.
+In Debug and Review, open with **Direction: X/5** and keep the score honest.
+In Challenge mode, write the challenge as a complete file inside one fenced block tagged with its language and a title line; the app opens it in a new tab. Never put answers or hints in it. You cannot write into existing tabs.
+When the user points out a mistake, acknowledge it in one sentence and continue at the current level.`;
+
+const CHALLENGES = [
+  {title:'Filter positives', lang:'python', code:
+`# Challenge: Filter positives
+# Write a function filter_positives(nums) that returns
+# all numbers greater than 0, in their original order.
+# Print the result for the list below.
+
+nums = [-3, 5, -1, 0, 7, 2]
+
+# Your code below
+`},
+  {title:'Guess the number', lang:'python', code:
+`# Challenge: Guess the number
+# Keep asking the user for a number with input() until they type 7.
+# After each wrong guess print "Too low" or "Too high".
+# When they get it, print "Got it in N guesses!"
+
+# Your code below
+`},
+  {title:'Busy departments', lang:'sql', code:
+`-- Challenge: Busy departments
+-- List each department with how many employees it has,
+-- showing only departments with more than 2 people,
+-- biggest first.
+
+-- Table setup (runs together with your query)
+CREATE TABLE employees (name TEXT, department TEXT, salary INTEGER);
+INSERT INTO employees VALUES
+  ('Aino','Sales',42000), ('Mikko','Sales',39000), ('Leena','Sales',45000),
+  ('Jussi','IT',58000), ('Sara','IT',61000),
+  ('Pekka','Support',33000), ('Emma','Support',35000), ('Ville','Support',31000), ('Noora','Support',36000);
+
+-- Your query below
+`}
+];
+
+const REPLIES = {
+  debug: [
+    "**Direction: 4/5** Your loop and your list are set up correctly. One condition lets through a value the task says to leave out.\n\nLook at your last run's output and compare it with the task description. Which number in the output shouldn't be there?",
+    "**Direction: 4/5** Same picture as before.\n\nConcepts to look at: *comparison operators* and the difference between *greater than* and *greater than or equal to*. Which one does the task ask for?"
+  ],
+  plan: [
+    "Good one to break down. Before any code: what's the very first piece of information your program needs to have before it can do anything else?",
+    "For that first step you'll want *a variable to hold the input* and *a loop*. How do you think they fit together?"
+  ],
+  review: [
+    "**Direction: 5/5** It works and it's readable, so this is about style now.\n\nRead your function line by line. Is there a part that takes more lines than the idea it expresses?",
+    "**Direction: 5/5** Look into *list comprehensions*. How might your loop look as one?"
+  ],
+  challenge: [
+    "You've got a challenge open in its own tab. Write your answer under the instructions and press Run. Which part do you want to try first?",
+    "Concepts that will help here: *a loop* and *a condition inside it*. Which one are you stuck on?"
+  ],
+  shared: {
+    3: "Here's the shape of the logic:\n```pseudo\nmake an empty result list\nfor each number:\n    if the number passes the test:\n        add it to the result\nreturn the result\n```\nWhere does your version differ from this?",
+    4: "Same pattern, unrelated scenario: keeping only the long names.\n```python\ndef long_names(names):\n    kept = []\n    for name in names:\n        if len(name) > 4:\n            kept.append(name)\n    return kept\n\nprint(long_names([\"Ada\", \"Linus\", \"Grace\"]))\n```\nPaste it into a scratch tab and run it, then apply the pattern to your own code.",
+    5: "Full solution:\n```python\ndef filter_positives(nums):\n    result = []\n    for n in nums:\n        if n > 0:  # strictly greater, so 0 is left out\n            result.append(n)\n    return result\n\nprint(filter_positives(nums))\n```"
+  },
+  explain: "In plain terms: this code walks through a list one item at a time and keeps the items that pass a test.\n\nThe empty list at the top collects the results. Each pass of the loop checks one number and adds it if the condition is true. `return` hands the finished list back to whoever called the function.\n\nWhich line would you like to go through in more detail?"
+};
+const BREAKING_TAIL = "\n\nJust in case, here's a reference you can compare against:\n```python\nresult = [n for n in nums if n > 0]\n```";
+const SPOKEN_LEAK = "\n\nJust change `>=` to `>` in your if statement.";
+const FALLBACK = "I couldn't get a reply that stays at this level, so here is a plain prompt from the app: what did you expect to happen, and what happened instead?";
+const MAX_RETRIES = 2;
+const TIME_LIMIT_MS = 5000;
+
+/* ---------- State ---------- */
+let tabSeq = 0;
+function makeTab(title, lang, code, owner){ return {id:'t'+(++tabSeq), title, lang, code, owner, out:[], lastRun:null, errLine:null}; }
+const state = {
+  mode:'debug', level:1, history:[], busy:false, challengeIdx:1,
+  tabs:[
+    makeTab('Filter positives','python', CHALLENGES[0].code +
+`def filter_positives(nums):
+    result = []
+    for n in nums:
+        if n >= 0:
+            result.append(n)
+    return result
+
+print(filter_positives(nums))
+`,'tutor'),
+    makeTab('scratch.py','python',
+`name = input("What's your name? ")
+for i in range(3):
+    print(f"Hello {name}, round {i + 1}")
+`,'user'),
+    makeTab('practice.sql','sql',
+`CREATE TABLE stories (title TEXT, url TEXT);
+INSERT INTO stories VALUES
+  ('Rust tips', 'https://github.com/x'),
+  ('My startup', 'https://medium.com/y'),
+  ('Ask HN', 'https://news.ycombinator.com');
+
+SELECT title,
+  CASE
+    WHEN url LIKE '%github%' THEN 'GitHub'
+    WHEN url LIKE '%medium%' THEN 'Medium'
+    ELSE 'Other'
+  END AS source
+FROM stories;
+`,'user')
+  ],
+  active:null, running:null
+};
+state.active = state.tabs[0].id;
+const $ = id => document.getElementById(id);
+const activeTab = () => state.tabs.find(t=>t.id===state.active);
+
+/* ---------- Helpers ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function inline(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>')}
+function md(s){
+  const parts = s.split(/```(\w*)\n([\s\S]*?)```/g); let out='';
+  for(let i=0;i<parts.length;i+=3){
+    out += parts[i].split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+inline(p).replace(/\n/g,'<br>')+'</p>').join('');
+    if(parts[i+2]!==undefined) out += `<pre class="code-block"><span class="lang">${esc(parts[i+1]||'code')}</span><code>${esc(parts[i+2])}</code></pre>`;
+  }
+  return out;
+}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+function loadScript(src){
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});
+}
+
+/* ---------- Rail ---------- */
+function renderModes(){
+  $('modes').innerHTML = Object.entries(MODES).map(([k,m])=>
+    `<button class="mode" data-mode="${k}" aria-pressed="${k===state.mode}"><span aria-hidden="true">${m.icon}</span>${m.label}</button>`).join('');
+}
+function renderLadder(){
+  const on = MODES[state.mode].levels;
+  $('ladder').classList.toggle('off',!on);
+  $('ladder').innerHTML = LEVELS.map((l,i)=>{const n=i+1;
+    return `<button class="rung ${n<state.level?'below':''}" role="radio" data-level="${n}" style="--h:${30+n*9}px" aria-checked="${n===state.level}" aria-label="Level ${n}: ${l.name}" ${on?'':'disabled'}>${n}</button>`;}).join('');
+  $('level-name').textContent = on ? `Level ${state.level}: ${LEVELS[state.level-1].name}` : 'Explain mode has no levels';
+  $('level-hint').hidden = !on;
+}
+function renderStatus(){
+  const m = MODES[state.mode];
+  $('status').innerHTML = `${m.icon} ${m.label}` + (m.levels ? `<small>next reply at Level ${state.level}</small>` : '');
+  const t = activeTab();
+  $('attachnote').textContent = `Sent with your message: “${t.title}” and ${t.lastRun ? 'its last output' : 'no output yet (press Run first)'}.`;
+}
+function renderRail(){renderModes();renderLadder();renderStatus()}
+
+/* ---------- Tabs and editor ---------- */
+function renderTabs(){
+  $('tabs').innerHTML = state.tabs.map(t=>
+    `<div class="tab" aria-selected="${t.id===state.active}">
+      <button class="sel" role="tab" aria-selected="${t.id===state.active}" data-tab="${t.id}" title="${t.owner==='tutor'?'Challenge from the tutor':'Your tab'}">
+        ${t.owner==='tutor'?'<span class="who" aria-label="from tutor">🎯</span>':''}${esc(t.title)} <span class="badge">${t.lang==='sql'?'SQL':'PY'}</span>
+      </button>
+      <button class="x" data-close="${t.id}" aria-label="Close ${esc(t.title)}">×</button>
+    </div>`).join('') +
+    `<div class="newtab"><button class="btn small" data-new="python">+ Python</button><button class="btn small" data-new="sql">+ SQL</button></div>`;
+}
+function renderGutter(){
+  const t=activeTab(); const n = $('code').value.split('\n').length;
+  let s=''; for(let i=1;i<=n;i++) s += (i===t.errLine?`<span class="err">${i}</span>`:i) + (i<n?'\n':'');
+  $('gutter').innerHTML = s; $('gutter').scrollTop = $('code').scrollTop;
+}
+function renderOutput(){
+  const t=activeTab(); const o=$('output');
+  if(!t.out.length){ o.innerHTML = `<div class="line sys">${t.lang==='sql'?'Results appear here as a table.':'Output from print() and input() appears here.'}</div>`; return; }
+  o.innerHTML=''; t.out.forEach(n=>o.appendChild(n)); o.scrollTop=o.scrollHeight;
+}
+function openTab(id){
+  const cur=state.tabs.find(t=>t.id===state.editorTab); if(cur) cur.code=$('code').value;
+  state.active=id; state.editorTab=id; const t=activeTab();
+  $('code').value=t.code;
+  $('code').placeholder = t.lang==='sql' ? '-- Write SQL here. Create tables in the same tab, then query them.' : '# Write Python here.';
+  $('owner').textContent = t.owner==='tutor' ? 'Challenge from the tutor' : '';
+  renderTabs(); renderGutter(); renderOutput(); renderStatus();
+}
+function addTab(tab){ state.tabs.push(tab); openTab(tab.id); }
+
+$('tabs').addEventListener('click',e=>{
+  const sel=e.target.closest('[data-tab]'), cl=e.target.closest('[data-close]'), nw=e.target.closest('[data-new]');
+  if(sel && !state.running) openTab(sel.dataset.tab);
+  if(cl){
+    if(state.running) return;
+    if(state.tabs.length===1) return;
+    const i=state.tabs.findIndex(t=>t.id===cl.dataset.close);
+    const wasActive = state.tabs[i].id===state.active;
+    state.tabs.splice(i,1);
+    if(wasActive){ state.active=null; openTab(state.tabs[Math.max(0,i-1)].id); } else renderTabs();
+  }
+  if(nw && !state.running){
+    const lang=nw.dataset.new; const n=state.tabs.filter(t=>t.lang===lang && t.owner==='user').length+1;
+    addTab(makeTab(lang==='sql'?`query${n}.sql`:`scratch${n}.py`, lang, '', 'user'));
+    $('code').focus();
+  }
+});
+$('code').addEventListener('input',()=>{ const t=activeTab(); t.code=$('code').value; if(t.errLine){t.errLine=null;} renderGutter(); });
+$('code').addEventListener('scroll',()=>{ $('gutter').scrollTop=$('code').scrollTop; });
+$('code').addEventListener('keydown',e=>{
+  const ta=e.target;
+  if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); runActive(); return; }
+  if(e.key==='Tab' && !e.shiftKey){
+    e.preventDefault(); const s=ta.selectionStart, en=ta.selectionEnd;
+    ta.setRangeText('    ', s, en, 'end'); ta.dispatchEvent(new Event('input'));
+  }
+  if(e.key==='Enter' && !e.ctrlKey && !e.metaKey){
+    const s=ta.selectionStart; const lineStart=ta.value.lastIndexOf('\n',s-1)+1; const line=ta.value.slice(lineStart,s);
+    let indent=(line.match(/^\s*/)||[''])[0]; if(/:\s*$/.test(line) && activeTab().lang==='python') indent+='    ';
+    e.preventDefault(); ta.setRangeText('\n'+indent, s, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input'));
+  }
+});
+
+/* ---------- Output helpers ---------- */
+function outLine(t, text, cls){ const d=document.createElement('div'); d.className='line'+(cls?' '+cls:''); d.textContent=text; t.out.push(d); if(t.id===state.active){ if(t.out.length===1) $('output').innerHTML=''; $('output').appendChild(d); $('output').scrollTop=$('output').scrollHeight;} return d; }
+function setRunning(on, label){
+  $('run').hidden=on; $('stop').hidden=!on;
+  $('runstate').innerHTML = on ? esc(label) : '<kbd>Ctrl</kbd> + <kbd>Enter</kbd> runs the tab';
+}
+$('clearout').addEventListener('click',()=>{ if(state.running) return; const t=activeTab(); t.out=[]; renderOutput(); });
+
+/* ---------- Python runner (Skulpt in the mock; Pyodide in the real app) ---------- */
+let skReady=null;
+function loadPython(){
+  if(!skReady) skReady = loadScript('https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js').then(()=>loadScript('https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js'));
+  return skReady;
+}
+async function runPython(t){
+  try{ if(!window.Sk || !Sk.builtinFiles){ setRunning(true,'Loading Python…'); await loadPython(); } }
+  catch(err){ outLine(t, 'Python could not load. Check your connection and try again.', 'err'); skReady=null; return {error:true}; }
+  setRunning(true,'Running…');
+  const run = state.running = {stop:false, pendingInput:null};
+  let buffer=''; let lastLine=null;
+  const write = s=>{
+    buffer += s; const parts = buffer.split('\n'); buffer = parts.pop();
+    parts.forEach(p=>{ if(lastLine){ lastLine.textContent += p; lastLine=null; } else outLine(t,p); });
+    if(buffer){ if(!lastLine) lastLine=outLine(t,''); lastLine.textContent += buffer; buffer=''; }
+  };
+  Sk.configure({
+    __future__:Sk.python3,
+    output: write,
+    read: x=>{ if(!Sk.builtinFiles || !Sk.builtinFiles.files[x]) throw "File not found: '"+x+"'"; return Sk.builtinFiles.files[x]; },
+    inputfunTakesPrompt:true,
+    inputfun: prompt => new Promise(resolve=>{
+      const line = lastLine || outLine(t,''); lastLine=null;
+      line.textContent += prompt;
+      const inp=document.createElement('input'); inp.className='stdin'; inp.setAttribute('aria-label','Type input and press Enter');
+      line.appendChild(inp);
+      setRunning(true,'Waiting for your input…');
+      const finish = val=>{
+        inp.remove(); const s=document.createElement('span'); s.className='typed'; s.textContent=val; line.appendChild(s);
+        run.pendingInput=null; Sk.execStart=Date.now(); setRunning(true,'Running…'); resolve(val);
+      };
+      run.pendingInput = ()=>finish('');
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(inp.value); } });
+      if(t.id===state.active) inp.focus();
+    }),
+    execLimit: TIME_LIMIT_MS, yieldLimit: 100
+  });
+  const started=performance.now();
+  try{
+    await Sk.misceval.asyncToPromise(()=>Sk.importMainWithBody('<stdin>',false,t.code,true), {'*':()=>{ if(run.stop) throw new Error('STOPPED'); }});
+    outLine(t, `Finished in ${Math.round(performance.now()-started)} ms`, 'sys');
+    return {error:false};
+  }catch(err){
+    let msg = String(err && err.toString ? err.toString() : err);
+    if(run.stop || /STOPPED/.test(msg)){ outLine(t,'Stopped.','sys'); return {error:true, stopped:true}; }
+    if(/TimeLimitError/.test(msg)) msg = `Stopped: the program ran longer than ${TIME_LIMIT_MS/1000} seconds. Check for a loop that never ends.`;
+    const m = String(err).match(/on line (\d+)/); if(m){ t.errLine=+m[1]; if(t.id===state.active) renderGutter(); }
+    outLine(t, msg, 'err'); return {error:true};
+  }
+}
+
+/* ---------- SQL runner (sql.js, SQLite compiled to JS) ---------- */
+let sqlReady=null;
+function loadSQL(){
+  if(!sqlReady) sqlReady = loadScript('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js').then(()=>initSqlJs());
+  return sqlReady;
+}
+async function runSQL(t){
+  let SQL;
+  try{ setRunning(true,'Loading SQL…'); SQL = await loadSQL(); }
+  catch(err){ outLine(t,'SQL could not load. Check your connection and try again.','err'); sqlReady=null; return {error:true}; }
+  state.running={stop:false};
+  setRunning(true,'Running…');
+  const db = new SQL.Database();
+  try{
+    const results = db.exec(t.code);
+    if(!results.length){ outLine(t,'The statements ran. Nothing was selected, so there are no rows to show.','ok'); }
+    results.forEach((r,i)=>{
+      const wrap=document.createElement('div'); wrap.className='tablewrap';
+      const rows = r.values.slice(0,200);
+      wrap.innerHTML = `<table><thead><tr>${r.columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${
+        rows.map(v=>`<tr>${v.map(x=>`<td>${x===null?'<span class="sys">NULL</span>':esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      wrap.dataset.text = [r.columns.join(' | '), ...rows.map(v=>v.map(x=>x===null?'NULL':x).join(' | '))].join('\n');
+      t.out.push(wrap); if(t.id===state.active){ if(t.out.length===1) $('output').innerHTML=''; $('output').appendChild(wrap); }
+      outLine(t, `${r.values.length} row${r.values.length===1?'':'s'}`, 'sys');
+    });
+    return {error:false};
+  }catch(err){
+    outLine(t, 'Error: '+err.message, 'err'); return {error:true};
+  }finally{ db.close(); }
+}
+
+/* ---------- Run control ---------- */
+async function runActive(){
+  if(state.running) return;
+  const t=activeTab(); t.code=$('code').value; t.errLine=null; renderGutter();
+  t.out=[]; renderOutput(); outLine(t, `▶ ${t.title}`, 'sys');
+  const res = t.lang==='sql' ? await runSQL(t) : await runPython(t);
+  state.running=null; setRunning(false);
+  t.lastRun = { error: !!res.error, text: t.out.map(n=>n.dataset && n.dataset.text ? n.dataset.text : n.textContent).join('\n').slice(-1500) };
+  renderStatus();
+}
+$('run').addEventListener('click', runActive);
+$('stop').addEventListener('click',()=>{
+  const r=state.running; if(!r) return; r.stop=true; if(r.pendingInput) r.pendingInput();
+});
+
+/* ---------- Tutor pipeline ---------- */
+function contextFor(){
+  const m=MODES[state.mode]; const t=activeTab();
+  let tag = m.levels ? `[Mode: ${m.label} | Level ${state.level}: ${LEVELS[state.level-1].rule}]` : `[Mode: ${m.label}: explain clearly, no level system]`;
+  tag += `\n[Open tab: ${t.title} (${t.lang}${t.owner==='tutor'?', challenge from you':''})]\n\`\`\`${t.lang}\n${t.code}\n\`\`\``;
+  tag += t.lastRun ? `\n[Last run output${t.lastRun.error?' (ended with an error)':''}]\n${t.lastRun.text}` : `\n[Not run yet]`;
+  return tag;
+}
+function codeGuard(text, level, levelsOn){
+  if(!levelsOn) return null;
+  const fences=[...text.matchAll(/```(\w*)/g)].map(m=>m[1]||'code');
+  if(level<=2 && fences.length) return `It contained a code block at Level ${level}.`;
+  if(level===3 && fences.some(l=>l!=='pseudo')) return 'It contained real code at Level 3.';
+  return null;
+}
+const JUDGE_PROMPT =
+`You review a coding tutor's draft reply. Answer only with JSON: {"leaks": true or false, "why": "one short sentence"}.
+A draft leaks if, at the stated level, it states or strongly implies the exact fix, names the specific lines or values to change, or lays out the full set of steps. A question that points at an area without naming the defect does not leak.`;
+const FIX_PATTERN = /\b(change|replace|remove|delete|swap|rename|add)\b[^.?!]{0,60}\b(to|with|from|instead of)\b/i;
+function mockJudge(text){
+  return FIX_PATTERN.test(text) ? {leaks:true, why:'The draft names the exact change to make.'} : {leaks:false, why:'The draft points at an area without naming the fix.'};
+}
+function draftFor(attempt, reply, behave){
+  if(behave==='code'   && attempt===1) return reply + BREAKING_TAIL;
+  if(behave==='verbal' && attempt===1) return reply + SPOKEN_LEAK;
+  if(behave==='stubborn') return reply + (attempt%2 ? BREAKING_TAIL : SPOKEN_LEAK);
+  return reply;
+}
+function cannedReply(userText){
+  if(state.mode==='explain') return {text:REPLIES.explain};
+  if(state.mode==='challenge' && state.level===1 && /challenge|exercise|another|new|give me|practice|sql|python/i.test(userText)){
+    const wantSQL = /sql|query|database|table/i.test(userText);
+    let c;
+    if(wantSQL) c = CHALLENGES[2];
+    else { c = CHALLENGES[state.challengeIdx % 2]; state.challengeIdx++; }
+    return {text:`I've opened **${c.title}** in a new tab. Write your answer under the instructions and press Run. Raise the level on the left when you want help.`, challenge:c};
+  }
+  if(state.level>=3) return {text:REPLIES.shared[state.level]};
+  return {text:REPLIES[state.mode][state.level-1]};
+}
+function showPayload(messages){ $('payload').textContent = JSON.stringify({model:'tutor-model', messages}, null, 2); }
+
+async function runPipeline(messages, level, m, reply, userText, thinking){
+  const behave = (m.levels && level<=2) ? $('behave').value : 'clean';
+  const judgeOn = $('judge-on').checked && m.levels && level<=2;
+  const tutorMsgs=[...messages]; const blocked=[];
+  for(let attempt=1; attempt<=MAX_RETRIES+1; attempt++){
+    thinking.textContent = attempt===1 ? 'Drafting…' : `Retrying (attempt ${attempt})…`;
+    await sleep(600);
+    const draft = draftFor(attempt, reply, behave);
+    let why = codeGuard(draft, level, m.levels), step='Code check';
+    if(!why && judgeOn){
+      thinking.textContent='Judge is reviewing…'; await sleep(400);
+      const verdict = mockJudge(draft);
+      $('judge-payload').textContent = JSON.stringify({model:'small-cheap-model', messages:[
+        {role:'system',content:JUDGE_PROMPT},
+        {role:'user',content:`Level: ${level}\nStudent message: ${userText}\nDraft reply:\n${draft}`}]},null,2) + '\n\nVerdict:\n' + JSON.stringify(verdict,null,2);
+      if(verdict.leaks){ why=verdict.why; step='Judge'; }
+    }
+    if(!why) return {text:draft, attempts:attempt, blocked, fallback:false};
+    blocked.push({attempt, step, why, draft});
+    if(attempt<=MAX_RETRIES){ tutorMsgs.push({role:'system',content:`Your previous draft was rejected. ${why} Rewrite it strictly at Level ${level}: ${LEVELS[level-1].rule}`}); showPayload(tutorMsgs); }
+  }
+  return {text:FALLBACK, attempts:MAX_RETRIES+1, blocked, fallback:true};
+}
+
+function addMsg(cls, html){ const el=document.createElement('div'); el.className=cls; el.innerHTML=html; $('log').appendChild(el); $('log').scrollTop=$('log').scrollHeight; return el; }
+function welcome(){
+  $('log').innerHTML='';
+  addMsg('msg bot', md("Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\nTry it: run **Filter positives**, look at the output, then ask me what's wrong. In Challenge mode, ask for a new exercise and it opens in its own tab."));
+}
+
+$('composer').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const text=$('input').value.trim(); if(!text||state.busy) return;
+  state.busy=true; $('input').value='';
+  const t=activeTab(); t.code=$('code').value;
+  const m=MODES[state.mode], level=state.level;
+  addMsg('msg user', esc(text) + `<span class="attached">📎 ${esc(t.title)}${t.lastRun?' + last output':''}</span>`);
+  const userTurn={role:'user', content: contextFor()+'\n\n'+text};
+  const messages=[{role:'system',content:SYSTEM_PROMPT}, ...state.history, userTurn];
+  showPayload(messages);
+  $('judge-payload').textContent='The judge did not run for this message.';
+  const thinking=addMsg('msg bot thinking','Drafting…');
+  const canned=cannedReply(text);
+  const result=await runPipeline(messages, level, m, canned.text, text, thinking);
+  thinking.remove();
+  if(result.blocked.length){
+    const n=result.blocked.length;
+    addMsg('guard', `<strong>${n} draft${n>1?'s':''} blocked before you saw a reply.</strong><ul>${
+      result.blocked.map(b=>`<li>Attempt ${b.attempt}: ${esc(b.step)} blocked it. ${esc(b.why)}<details><summary>Show the blocked draft</summary>${md(b.draft)}</details></li>`).join('')}</ul>`);
+  }
+  let chips='';
+  const a=result.attempts;
+  chips += result.fallback ? `<span class="chip fallback">App fallback after ${a} attempts</span>` : `<span class="chip">${esc(m.label+(m.levels?`, Level ${level}`:''))}, ${a} attempt${a>1?'s':''}</span>`;
+  if(canned.challenge && !result.fallback){
+    // The only path that writes to the editor: a challenge in Challenge mode always becomes a new tab.
+    const c=canned.challenge; let title=c.title; let k=2; while(state.tabs.some(x=>x.title===title)) title=`${c.title} ${k++}`;
+    addTab(makeTab(title, c.lang, c.code, 'tutor'));
+    chips += `<span class="chip tab-made">Opened new tab: ${esc(title)}</span>`;
+  }
+  addMsg('msg bot', chips + md(result.text));
+  state.history.push(userTurn,{role:'assistant',content:result.text});
+  if(m.levels && state.level!==1){ state.level=1; $('reset-note').textContent='Back to Level 1 for your next message.'; setTimeout(()=>$('reset-note').textContent='',2600); }
+  state.busy=false; renderRail();
+});
+
+/* ---------- Rail events ---------- */
+$('modes').addEventListener('click',e=>{ const b=e.target.closest('[data-mode]'); if(!b) return; state.mode=b.dataset.mode; state.level=1; renderRail(); });
+$('ladder').addEventListener('click',e=>{ const b=e.target.closest('[data-level]'); if(!b||b.disabled) return; state.level=+b.dataset.level; renderLadder(); renderStatus(); });
+$('new-problem').addEventListener('click',()=>{ state.history=[]; state.level=1; $('payload').textContent='Send a message to see the request.'; welcome(); renderRail(); });
+$('toggle-inspector').addEventListener('click',e=>{ const open=$('inspector').hidden; $('inspector').hidden=!open; e.currentTarget.setAttribute('aria-expanded',open); });
+$('input').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('composer').requestSubmit(); } });
+
+/* ---------- Boot ---------- */
+openTab(state.active); renderRail(); welcome();
+setRunning(false);
+loadPython().catch(()=>{});
+</script>

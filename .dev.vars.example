@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars and fill in. Never commit .dev.vars.
+OPENROUTER_API_KEY=
+# OpenRouter model IDs, e.g. provider/model-name
+TUTOR_MODEL=
+JUDGE_MODEL=
