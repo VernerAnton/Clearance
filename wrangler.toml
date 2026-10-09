@@ -1,0 +1,5 @@
+# Cloudflare Pages config. `npx wrangler pages dev` serves the built site from
+# dist/ together with the API in functions/, reading secrets from .dev.vars.
+name = "clearance"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-01"

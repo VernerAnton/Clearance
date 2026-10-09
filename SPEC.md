@@ -64,13 +64,13 @@ History is the chat since the last "New mission", without the context headers of
 Tick items as they're done. Stop after each phase for review.
 
 ### Phase 1: Layout and editor
-- [ ] Vite + React + TypeScript project, with Pages Functions folder and wrangler config.
-- [ ] Three-panel layout: rail, workspace, chat. Desktop first; small screens must not break, but the final mobile layout is still undecided (see Open questions).
-- [ ] Rail: mode selector and clearance ladder 1-5 with themed names and plain descriptions. Ladder disabled in Explain mode.
-- [ ] Workspace: tabs (Python or SQL badge, mission marker, close button, "+ Python", "+ SQL"), CodeMirror 6 editor with syntax highlighting for both languages, Tab inserts 4 spaces, Ctrl/Cmd+Enter runs.
-- [ ] Live linting (underlining errors while typing) is **off**. Add a setting for it, default off.
-- [ ] Tabs and their code persist in localStorage. Start with one example Python tab and one SQL tab.
-- [ ] Chat panel with a placeholder reply (no backend yet).
+- [x] Vite + React + TypeScript project, with Pages Functions folder and wrangler config.
+- [x] Three-panel layout: rail, workspace, chat. Desktop first; small screens must not break, but the final mobile layout is still undecided (see Open questions).
+- [x] Rail: mode selector and clearance ladder 1-5 with themed names and plain descriptions. Ladder disabled in Explain mode.
+- [x] Workspace: tabs (Python or SQL badge, mission marker, close button, "+ Python", "+ SQL"), CodeMirror 6 editor with syntax highlighting for both languages, Tab inserts 4 spaces, Ctrl/Cmd+Enter runs.
+- [x] Live linting (underlining errors while typing) is **off**. Add a setting for it, default off.
+- [x] Tabs and their code persist in localStorage. Start with one example Python tab and one SQL tab.
+- [x] Chat panel with a placeholder reply (no backend yet).
 
 ### Phase 2: Python runner
 - [ ] Pyodide in a Web Worker, files served from this site.

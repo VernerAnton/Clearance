@@ -33,6 +33,16 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 
 ## Commands (fill in as they're created)
 
-- `npm run dev`: frontend only
-- `npx wrangler pages dev`: frontend + functions, with `.dev.vars`
-- `npm test`: unit tests
+- `npm install`: install dependencies (once, and after pulling changes to `package.json`)
+- `npm run dev`: frontend only, at http://localhost:5173
+- `npm run build`: typecheck, then build the site into `dist/`
+- `npx wrangler pages dev`: frontend + functions from `dist/` (run `npm run build` first), with `.dev.vars`
+- `npm test`: unit tests (Vitest)
+- `npm run typecheck`: TypeScript check only
+
+## Layout of the code
+
+- `shared/`: code used by both the browser and the server (modes, clearance levels).
+- `src/lib/`: pure logic (tabs and their storage, settings). Unit tests sit next to it as `*.test.ts`.
+- `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`).
+- `functions/api/`: Cloudflare Pages Functions (the backend).
