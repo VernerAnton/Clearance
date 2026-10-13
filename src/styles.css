@@ -155,18 +155,35 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .console { position: relative; display: flex; flex-direction: column; flex: 0 1 auto; min-height: 90px; }
 .runbar { display: flex; align-items: center; gap: 10px; background: var(--ed-gutter); color: var(--ed-ink); padding: 7px 12px; border-top: 1px solid var(--ed-line); flex-wrap: wrap; flex-shrink: 0; }
 .run { background: var(--ed-mint); color: #0b2a1e; border: 0; border-radius: 6px; padding: 5px 14px; font-weight: 700; }
+.stop { background: transparent; color: var(--ed-red); border: 1.5px solid var(--ed-red); border-radius: 6px; padding: 4px 12px; font-weight: 700; }
 .runstate { font-size: 0.82rem; color: var(--ed-dim); margin-right: auto; }
 .runbar kbd { font-family: var(--font-code); font-size: 0.72rem; border: 1px solid var(--ed-line); border-radius: 4px; padding: 0 4px; }
 .clearout { background: none; border: 0; color: var(--ed-dim); font-size: 0.82rem; text-decoration: underline; }
+.clearout:disabled { visibility: hidden; }
+
+/* Fallback when input() can't pause: lines typed before Run. */
+.stdin-box { background: var(--ed-gutter); color: var(--ed-ink); padding: 6px 12px 8px; border-top: 1px solid var(--ed-line); font-size: 0.82rem; flex-shrink: 0; }
+.stdin-box label { display: block; color: var(--ed-dim); margin-bottom: 4px; }
+.stdin-box code { color: var(--ed-ink); }
+.stdin-box textarea { width: 100%; resize: vertical; min-height: 2.6em; background: var(--ed-bg); color: var(--ed-yellow); border: 1px solid var(--ed-line); border-radius: 6px; padding: 4px 8px; font-family: var(--font-code); font-size: 13px; }
+.stdin-box .notice { margin: 4px 0 0; color: var(--ed-dim); }
 
 .output { flex: 1; min-height: 0; background: var(--ed-bg); color: var(--ed-ink); border-top: 1px solid var(--ed-line); overflow: auto; padding: 10px 14px; font-family: var(--font-code); font-size: 13px; line-height: 1.55; flex-shrink: 0; }
-.output .line { white-space: pre-wrap; word-break: break-word; }
+.output-text { margin: 0; font: inherit; white-space: pre-wrap; word-break: break-word; }
 .output .err { color: var(--ed-red); }
 .output .sys { color: var(--ed-dim); font-style: italic; }
+.output .input { color: var(--ed-yellow); }
+/* Where input() waits: typed text appears right after the prompt. */
+.output input.stdin {
+  background: transparent; border: 0; border-bottom: 1px dashed var(--ed-yellow); color: var(--ed-yellow);
+  font: inherit; width: min(280px, 60%); padding: 0; outline: none;
+}
+.output input.stdin:focus-visible { border-bottom-style: solid; }
 
 /* When the editor column is dragged narrow, drop the run bar's hint text first. */
 @container (max-width: 620px) { .tabhint { display: none; } }
-@container (max-width: 440px) { .runstate { visibility: hidden; } }
+@container (max-width: 440px) { .stop { background: transparent; color: var(--ed-red); border: 1.5px solid var(--ed-red); border-radius: 6px; padding: 4px 12px; font-weight: 700; }
+.runstate { visibility: hidden; } }
 
 /* ---------- Chat ---------- */
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; flex-shrink: 0; }

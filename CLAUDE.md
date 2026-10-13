@@ -36,13 +36,17 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `npm install`: install dependencies (once, and after pulling changes to `package.json`)
 - `npm run dev`: frontend only, at http://localhost:5173
 - `npm run build`: typecheck, then build the site into `dist/`
-- `npx wrangler pages dev`: frontend + functions from `dist/` (run `npm run build` first), with `.dev.vars`
+- `npx wrangler pages dev`: the built site from `dist/` + functions, with `.dev.vars` and the `public/_headers` headers (run `npm run build` first)
 - `npm test`: unit tests (Vitest)
-- `npm run typecheck`: TypeScript check only
+- `npm run typecheck`: TypeScript check only (browser code, then `vite.config.ts` + `scripts/`)
 
 ## Layout of the code
 
 - `shared/`: code used by both the browser and the server (modes, clearance levels).
 - `src/lib/`: pure logic (tabs and their storage, settings, panel sizes). Unit tests sit next to it as `*.test.ts`.
+- `src/python/`: the Python runner. `python.worker.ts` runs Pyodide off the main thread, `runner.py` runs the learner's code and trims tracebacks, `PythonRunner.ts` is the page side (input(), time limit, Stop).
+- `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
 - `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
 - `functions/api/`: Cloudflare Pages Functions (the backend).
+- `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
+- `public/_headers`: COOP/COEP headers for Cloudflare. `vite.config.ts` sets the same headers for dev and preview.

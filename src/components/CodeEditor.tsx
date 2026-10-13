@@ -1,8 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { Compartment, EditorSelection, EditorState, type Extension } from '@codemirror/state';
 import {
+  Compartment,
+  EditorSelection,
+  EditorState,
+  RangeSet,
+  StateEffect,
+  StateField,
+  type Extension,
+} from '@codemirror/state';
+import {
+  Decoration,
   EditorView,
+  GutterMarker,
   drawSelection,
+  lineNumberMarkers,
   highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
@@ -37,6 +48,8 @@ interface Props {
   lang: Lang;
   code: string;
   helpers: EditorHelpers;
+  /** Line where the last run failed, or null. Cleared by the next edit. */
+  errorLine: number | null;
   /** Changes when the editor should take focus (e.g. a new tab was opened). */
   focusTick: number;
   onChange: (code: string) => void;
@@ -60,6 +73,8 @@ const editorTheme = EditorView.theme(
     },
     '&.cm-focused .cm-matchingBracket': { backgroundColor: 'rgba(242, 193, 78, 0.25)', outline: 'none' },
     '&.cm-focused': { outline: 'none' },
+    '.cm-errorLine': { backgroundColor: 'rgba(255, 138, 128, 0.12)' },
+    '.cm-lineNumbers .cm-errorLineNumber': { color: 'var(--ed-red)', fontWeight: '600' },
     '.cm-tooltip-autocomplete ul li[aria-selected]': { backgroundColor: 'var(--ed-line)', color: 'var(--ed-ink)' },
     '.cm-completionMatchedText': { textDecoration: 'none', color: 'var(--ed-yellow)' },
     '.cm-tooltip': { backgroundColor: 'var(--ed-gutter)', color: 'var(--ed-ink)', border: '1px solid var(--ed-line)' },
@@ -79,6 +94,43 @@ const highlight = HighlightStyle.define([
   { tag: [t.standard(t.variableName), t.self], color: '#F78C6C' },
   { tag: t.invalid, color: 'var(--ed-red)' },
 ]);
+
+// ---- Error line: a red line number and a tinted line where the last run failed ----
+
+const setErrorLine = StateEffect.define<number | null>();
+
+const errorLineField = StateField.define<number | null>({
+  create: () => null,
+  update(line, tr) {
+    if (tr.docChanged) line = null; // Any edit clears the marker.
+    for (const e of tr.effects) if (e.is(setErrorLine)) line = e.value;
+    return line;
+  },
+});
+
+class ErrorNumberMarker extends GutterMarker {
+  elementClass = 'cm-errorLineNumber';
+}
+const errorNumberMarker = new ErrorNumberMarker();
+const errorLineDeco = Decoration.line({ class: 'cm-errorLine' });
+
+function errorLineStart(state: EditorState): number | null {
+  const line = state.field(errorLineField);
+  if (line === null || line < 1 || line > state.doc.lines) return null;
+  return state.doc.line(line).from;
+}
+
+const errorLineMarking: Extension = [
+  errorLineField,
+  EditorView.decorations.compute([errorLineField], (state) => {
+    const from = errorLineStart(state);
+    return from === null ? Decoration.none : Decoration.set([errorLineDeco.range(from)]);
+  }),
+  lineNumberMarkers.compute([errorLineField], (state) => {
+    const from = errorLineStart(state);
+    return from === null ? RangeSet.empty : RangeSet.of([errorNumberMarker.range(from)]);
+  }),
+];
 
 /** Tab: 4 spaces (or indent every selected line). Shift-Tab: un-indent. */
 const tabKeymap = keymap.of([
@@ -140,7 +192,7 @@ function languageFor(lang: Lang): Extension {
   return lang === 'sql' ? sql({ dialect: SQLite }) : python();
 }
 
-export function CodeEditor({ tabId, lang, code, helpers, focusTick, onChange, onRun }: Props) {
+export function CodeEditor({ tabId, lang, code, helpers, errorLine, focusTick, onChange, onRun }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Each tab keeps its own editor state, so undo history and cursor survive tab switches.
@@ -174,6 +226,7 @@ export function CodeEditor({ tabId, lang, code, helpers, focusTick, onChange, on
         keymap.of([...defaultKeymap, ...historyKeymap]),
         syntaxHighlighting(highlight),
         editorTheme,
+        errorLineMarking,
         languageConf.current.of(languageFor(language)),
         helperConf.current.of(helperExtensions(latest.current.helpers)),
         EditorView.contentAttributes.of({ 'aria-label': 'Code editor' }),
@@ -209,6 +262,17 @@ export function CodeEditor({ tabId, lang, code, helpers, focusTick, onChange, on
   useEffect(() => {
     viewRef.current?.dispatch({ effects: helperConf.current.reconfigure(helperExtensions(latest.current.helpers)) });
   }, [liveLinting, autocomplete, autoClose]);
+
+  // Show (or clear) the error marker, and scroll to it.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const effects: StateEffect<unknown>[] = [setErrorLine.of(errorLine)];
+    if (errorLine !== null && errorLine >= 1 && errorLine <= view.state.doc.lines) {
+      effects.push(EditorView.scrollIntoView(view.state.doc.line(errorLine).from, { y: 'center' }));
+    }
+    view.dispatch({ effects });
+  }, [errorLine, tabId]);
 
   useEffect(() => {
     if (focusTick > 0) viewRef.current?.focus();

@@ -15,11 +15,12 @@ interface Props {
   mode: ModeId;
   level: Level;
   activeTitle: string;
+  hasLastRun: boolean;
   messages: ChatMessage[];
   onSend: (text: string) => void;
 }
 
-export function Chat({ mode, level, activeTitle, messages, onSend }: Props) {
+export function Chat({ mode, level, activeTitle, hasLastRun, messages, onSend }: Props) {
   const [draft, setDraft] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
   const m = modeById(mode);
@@ -90,7 +91,9 @@ export function Chat({ mode, level, activeTitle, messages, onSend }: Props) {
             Send
           </button>
         </div>
-        <span className="attachnote">Sent with your message: “{activeTitle}” and its last output (once it has run).</span>
+        <span className="attachnote">
+          Sent with your message: “{activeTitle}” and {hasLastRun ? 'its last output' : 'no output yet (press Run first)'}.
+        </span>
       </form>
     </section>
   );

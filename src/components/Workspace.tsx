@@ -1,18 +1,23 @@
-import { useEffect, useRef, type WheelEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react';
 import { LIMITS } from '../lib/layout';
+import type { Segment } from '../lib/output';
 import type { Lang, Tab } from '../lib/tabs';
 import { CodeEditor, type EditorHelpers } from './CodeEditor';
 import { Splitter } from './Splitter';
 
-export interface OutputLine {
-  kind: 'out' | 'err' | 'sys';
-  text: string;
-}
+export type RunPhase = 'loading' | 'running' | 'waiting';
 
 interface Props {
   tabs: Tab[];
   activeId: string;
-  output: OutputLine[];
+  output: Segment[];
+  errorLine: number | null;
+  /** The run in progress (in any tab), or null. */
+  run: { tabId: string; phase: RunPhase } | null;
+  /** False when the page isn't cross-origin isolated: input() lines are typed before Run. */
+  interactiveInput: boolean;
+  stdinText: string;
+  onStdinText: (text: string) => void;
   helpers: EditorHelpers;
   focusTick: number;
   outputHeight: number;
@@ -23,14 +28,47 @@ interface Props {
   onNew: (lang: Lang) => void;
   onCode: (code: string) => void;
   onRun: () => void;
+  onStop: () => void;
+  onInput: (text: string) => void;
   onClearOutput: () => void;
+}
+
+const PHASE_TEXT: Record<RunPhase, string> = {
+  loading: 'Loading Python…',
+  running: 'Running…',
+  waiting: 'Waiting for your input…',
+};
+
+/** The box that appears in the output where input() is waiting. */
+function InlineInput({ onSubmit }: { onSubmit: (text: string) => void }) {
+  const [value, setValue] = useState('');
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSubmit(value);
+    }
+  };
+  return (
+    <input
+      className="stdin"
+      autoFocus
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={onKeyDown}
+      aria-label="Type your input and press Enter"
+      spellCheck={false}
+      autoComplete="off"
+    />
+  );
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function Workspace(props: Props) {
-  const { tabs, activeId, output, helpers, focusTick, onSelect, onClose, onNew, onCode, onRun, onClearOutput } = props;
+  const { tabs, activeId, output, errorLine, run, helpers, focusTick, onSelect, onClose, onNew, onCode } = props;
+  const { onRun, onStop, onInput, onClearOutput, interactiveInput, stdinText, onStdinText } = props;
   const { outputHeight, onOutputHeight, onOutputReset } = props;
+  const waitingHere = run?.tabId === activeId && run.phase === 'waiting';
   const active = tabs.find((t) => t.id === activeId)!;
   const outRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +102,7 @@ export function Workspace(props: Props) {
 
   useEffect(() => {
     outRef.current?.scrollTo({ top: outRef.current.scrollHeight });
-  }, [output]);
+  }, [output, waitingHere]);
 
   return (
     <section className="work" aria-label="Code workspace">
@@ -95,9 +133,15 @@ export function Workspace(props: Props) {
                 type="button"
                 className="x"
                 onClick={() => onClose(t.id)}
-                disabled={tabs.length === 1}
+                disabled={tabs.length === 1 || run?.tabId === t.id}
                 aria-label={`Close ${t.title}`}
-                title={tabs.length === 1 ? 'The last tab stays open' : `Close ${t.title}`}
+                title={
+                  tabs.length === 1
+                    ? 'The last tab stays open'
+                    : run?.tabId === t.id
+                      ? 'Stop the program before closing this tab'
+                      : `Close ${t.title}`
+                }
               >
                 ×
               </button>
@@ -120,6 +164,7 @@ export function Workspace(props: Props) {
           lang={active.lang}
           code={active.code}
           helpers={helpers}
+          errorLine={errorLine}
           focusTick={focusTick}
           onChange={onCode}
           onRun={onRun}
@@ -138,29 +183,66 @@ export function Workspace(props: Props) {
           onReset={onOutputReset}
         />
         <div className="runbar">
-          <button type="button" className="run" onClick={onRun}>
-            ▶ Run
-          </button>
-          <span className="runstate">
-            <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
-            <span className="tabhint"> · Esc then Tab leaves the editor</span>
+          {run ? (
+            <button type="button" className="stop" onClick={onStop}>
+              ■ Stop
+            </button>
+          ) : (
+            <button type="button" className="run" onClick={onRun}>
+              ▶ Run
+            </button>
+          )}
+          <span className="runstate" aria-live="polite">
+            {run ? (
+              <>
+                {PHASE_TEXT[run.phase]}
+                {run.tabId !== activeId && ` (in “${tabs.find((t) => t.id === run.tabId)?.title}”)`}
+              </>
+            ) : (
+              <>
+                <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
+                <span className="tabhint"> · Esc then Tab leaves the editor</span>
+              </>
+            )}
           </span>
-          <button type="button" className="clearout" onClick={onClearOutput}>
+          <button type="button" className="clearout" onClick={onClearOutput} disabled={run?.tabId === activeId}>
             Clear output
           </button>
         </div>
 
-        <div className="output" ref={outRef} aria-live="polite" aria-label="Output">
-          {output.length === 0 ? (
-            <div className="line sys">
+        {!interactiveInput && active.lang === 'python' && (
+          <div className="stdin-box">
+            <label htmlFor="stdin-lines">
+              Input for <code>input()</code>, one line per call
+            </label>
+            <textarea
+              id="stdin-lines"
+              rows={2}
+              value={stdinText}
+              onChange={(e) => onStdinText(e.target.value)}
+              spellCheck={false}
+            />
+            <p className="notice">
+              Typing straight into the output needs a cross-origin isolated page, and this one isn’t. Fill this in before
+              you press Run.
+            </p>
+          </div>
+        )}
+
+        <div className="output" ref={outRef} aria-label="Output">
+          {output.length === 0 && !waitingHere ? (
+            <div className="sys">
               {active.lang === 'sql' ? 'Results appear here as a table.' : 'Output from print() and input() appears here.'}
             </div>
           ) : (
-            output.map((l, i) => (
-              <div key={i} className={`line ${l.kind}`}>
-                {l.text}
-              </div>
-            ))
+            <pre className="output-text">
+              {output.map((seg, i) => (
+                <span key={i} className={seg.kind}>
+                  {seg.text}
+                </span>
+              ))}
+              {waitingHere && <InlineInput onSubmit={onInput} />}
+            </pre>
           )}
         </div>
       </div>

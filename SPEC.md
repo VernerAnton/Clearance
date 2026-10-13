@@ -75,15 +75,15 @@ Tick items as they're done. Stop after each phase for review.
 - [x] Added after review: drag the dividers to resize the three columns and the output area. Sizes are saved; double-click a divider to reset it. Scroll bars are hidden.
 
 ### Phase 2: Python runner
-- [ ] Pyodide in a Web Worker, files served from this site.
-- [ ] `public/_headers` and the Vite dev server set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
-- [ ] Terminal panel under the editor shows stdout and stderr as they happen.
-- [ ] `input()` works inline in the terminal: prompt appears, learner types, Enter continues the program. Implement with SharedArrayBuffer + Atomics so `input()` blocks in the worker.
-- [ ] If the page is not cross-origin isolated, fall back to an "Input" box filled before Run, and show a small notice.
-- [ ] Time limit of 5 seconds of running time, **not counting time spent waiting for input**. On timeout show "Stopped: ran longer than 5 seconds. Check for a loop that never ends."
-- [ ] Stop button interrupts a run (Pyodide interrupt buffer; terminate and restart the worker if that fails).
-- [ ] On an error, show the traceback and mark the error line in the editor (gutter marker), cleared on the next edit.
-- [ ] Store the last run's output per tab for the tutor.
+- [x] Pyodide in a Web Worker, files served from this site.
+- [x] `public/_headers` and the Vite dev server set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- [x] Terminal panel under the editor shows stdout and stderr as they happen.
+- [x] `input()` works inline in the terminal: prompt appears, learner types, Enter continues the program. Implement with SharedArrayBuffer + Atomics so `input()` blocks in the worker.
+- [x] If the page is not cross-origin isolated, fall back to an "Input" box filled before Run, and show a small notice.
+- [x] Time limit of 5 seconds of running time, **not counting time spent waiting for input**. On timeout show "Stopped: ran longer than 5 seconds. Check for a loop that never ends."
+- [x] Stop button interrupts a run (Pyodide interrupt buffer; terminate and restart the worker if that fails).
+- [x] On an error, show the traceback and mark the error line in the editor (gutter marker), cleared on the next edit.
+- [x] Store the last run's output per tab for the tutor.
 
 ### Phase 3: SQL runner
 - [ ] sql.js (WASM), self-hosted. Fresh in-memory database on every run, so a tab's CREATE/INSERT statements run together with the query.

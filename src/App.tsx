@@ -6,7 +6,8 @@ import { loadTabs, newId, nextScratchTitle, saveTabs, type Lang, type TabsState 
 import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
 import { Splitter } from './components/Splitter';
-import { Workspace, type OutputLine } from './components/Workspace';
+import { Workspace } from './components/Workspace';
+import { useCodeRunner } from './hooks/useCodeRunner';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
@@ -17,7 +18,6 @@ const welcome = (): ChatMessage[] => [{ id: ++msgSeq, role: 'tutor', text: WELCO
 
 export function App() {
   const [tabsState, setTabsState] = useState<TabsState>(loadTabs);
-  const [outputs, setOutputs] = useState<Record<string, OutputLine[]>>({});
   const [mode, setMode] = useState<ModeId>('debug');
   const [level, setLevel] = useState<Level>(1);
   const [resetNote, setResetNote] = useState('');
@@ -30,6 +30,11 @@ export function App() {
 
   const { tabs, activeId } = tabsState;
   const active = tabs.find((t) => t.id === activeId)!;
+  const runner = useCodeRunner();
+  const { clearErrorLine } = runner;
+  // Ctrl+Enter inside the editor reads the tab through this ref, so it always gets the latest one.
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   // Save tabs a moment after the last change, not on every keystroke.
   useEffect(() => {
@@ -60,9 +65,11 @@ export function App() {
   };
 
   const updateCode = useCallback(
-    (code: string) =>
-      setTabsState((s) => ({ ...s, tabs: s.tabs.map((t) => (t.id === s.activeId ? { ...t, code } : t)) })),
-    [],
+    (code: string) => {
+      setTabsState((s) => ({ ...s, tabs: s.tabs.map((t) => (t.id === s.activeId ? { ...t, code } : t)) }));
+      clearErrorLine(activeRef.current.id); // An edit clears the error marker.
+    },
+    [clearErrorLine],
   );
 
   const newTab = (lang: Lang) => {
@@ -81,22 +88,11 @@ export function App() {
       const activeId = s.activeId === id ? rest[Math.max(0, i - 1)].id : s.activeId;
       return { tabs: rest, activeId };
     });
-    setOutputs(({ [id]: _closed, ...rest }) => rest);
+    runner.forgetTab(id);
   };
 
-  // Placeholder until the runners exist (Python in Phase 2, SQL in Phase 3).
-  // Reads the tab through a ref so Ctrl+Enter inside the editor always sees the latest one.
-  const activeRef = useRef(active);
-  activeRef.current = active;
-  const run = useCallback(() => {
-    const tab = activeRef.current;
-    const runner = tab.lang === 'sql' ? 'SQL runner arrives in Phase 3' : 'Python runner arrives in Phase 2';
-    const lines: OutputLine[] = [
-      { kind: 'sys', text: `▶ ${tab.title}` },
-      { kind: 'sys', text: `Nothing ran: the ${runner}.` },
-    ];
-    setOutputs((o) => ({ ...o, [tab.id]: lines }));
-  }, []);
+  const { start } = runner;
+  const run = useCallback(() => void start(activeRef.current), [start]);
 
   const chooseMode = (m: ModeId) => {
     setMode(m);
@@ -105,7 +101,8 @@ export function App() {
 
   const send = (text: string) => {
     const m = modeById(mode);
-    const user: ChatMessage = { id: ++msgSeq, role: 'user', text, attached: active.title };
+    const attached = active.title + (activeId in runner.lastRuns ? ' + last output' : '');
+    const user: ChatMessage = { id: ++msgSeq, role: 'user', text, attached };
     const where = m.hasLevels ? `${m.label}, Clearance ${level}: ${levelInfo(level).name}` : m.label;
     const reply: ChatMessage = {
       id: ++msgSeq,
@@ -160,7 +157,12 @@ export function App() {
       <Workspace
         tabs={tabs}
         activeId={activeId}
-        output={outputs[activeId] ?? []}
+        output={runner.outputs[activeId] ?? []}
+        errorLine={runner.errorLines[activeId] ?? null}
+        run={runner.run}
+        interactiveInput={runner.interactive}
+        stdinText={runner.stdinTexts[activeId] ?? ''}
+        onStdinText={(text) => runner.setStdinText(activeId, text)}
         helpers={settings}
         focusTick={focusTick}
         outputHeight={layout.outputHeight}
@@ -171,7 +173,9 @@ export function App() {
         onNew={newTab}
         onCode={updateCode}
         onRun={run}
-        onClearOutput={() => setOutputs((o) => ({ ...o, [activeId]: [] }))}
+        onStop={runner.stop}
+        onInput={runner.provideInput}
+        onClearOutput={() => runner.clearOutput(activeId)}
       />
       <Splitter
         axis="x"
@@ -183,7 +187,14 @@ export function App() {
         onChange={(chatWidth) => resize({ chatWidth })}
         onReset={() => resize({ chatWidth: DEFAULT_LAYOUT.chatWidth })}
       />
-      <Chat mode={mode} level={level} activeTitle={active.title} messages={messages} onSend={send} />
+      <Chat
+        mode={mode}
+        level={level}
+        activeTitle={active.title}
+        hasLastRun={activeId in runner.lastRuns}
+        messages={messages}
+        onSend={send}
+      />
     </div>
   );
 }

@@ -1,0 +1,6 @@
+# Cloudflare Pages response headers.
+# These two make the page "cross-origin isolated". That unlocks SharedArrayBuffer,
+# which lets Python's input() pause and wait for the learner to type.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
