@@ -91,13 +91,13 @@ Tick items as they're done. Stop after each phase for review.
 - [x] Last run's output stored per tab as plain text.
 
 ### Phase 4: Tutor backend
-- [ ] `POST /api/chat` in Pages Functions. Reads `OPENROUTER_API_KEY`, `TUTOR_MODEL`, `JUDGE_MODEL` from env.
-- [ ] Builds the request exactly as in section 4 with `prompts/tutor-system.md` as the system prompt.
-- [ ] Validates input; rejects unknown modes and levels outside 1-5.
-- [ ] Client: level resets to 1 after each send, with a short "Clearance reset" note. Message shows a "📎 tab + last output" chip so the learner knows what was sent.
-- [ ] "New mission" clears chat history (tabs stay).
-- [ ] Clear error messages in the chat when the API fails (no key, rate limit, network).
-- [ ] Unit tests for the message builder.
+- [x] `POST /api/chat` in Pages Functions. Reads `OPENROUTER_API_KEY`, `TUTOR_MODEL`, `JUDGE_MODEL` from env.
+- [x] Builds the request exactly as in section 4 with `prompts/tutor-system.md` as the system prompt.
+- [x] Validates input; rejects unknown modes and levels outside 1-5.
+- [x] Client: level resets to 1 after each send, with a short "Clearance reset" note. Message shows a "📎 tab + last output" chip so the learner knows what was sent.
+- [x] "New mission" clears chat history (tabs stay).
+- [x] Clear error messages in the chat when the API fails (no key, rate limit, network).
+- [x] Unit tests for the message builder.
 
 ### Phase 5: Guard pipeline
 Runs on the server for every reply.

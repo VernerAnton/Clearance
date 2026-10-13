@@ -3,3 +3,5 @@ OPENROUTER_API_KEY=
 # OpenRouter model IDs, e.g. provider/model-name
 TUTOR_MODEL=
 JUDGE_MODEL=
+# Optional, only for testing against a fake server. Leave unset to use OpenRouter.
+# OPENROUTER_BASE_URL=

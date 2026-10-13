@@ -203,7 +203,20 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .msg.user { align-self: flex-end; max-width: 88%; background: var(--user-bg); color: var(--user-ink); border-bottom-right-radius: 2px; white-space: pre-wrap; word-break: break-word; }
 .msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 2px; }
 .attached { display: block; font-size: 0.75rem; opacity: 0.8; margin-top: 6px; white-space: normal; }
+.msg.user.failed { opacity: 0.6; }
+.msg.error { align-self: flex-start; background: var(--red-bg); border: 1px solid var(--red); border-left-width: 4px; border-radius: 0 8px 8px 0; font-size: 0.9rem; }
+.msg.error strong { color: var(--red); }
+.msg.error p { display: inline; }
+.thinking { color: var(--ink-soft); font-style: italic; }
+.msg ul, .msg ol { margin: 0 0 0.6em; padding-left: 1.3em; }
+.msg blockquote { margin: 0 0 0.6em; padding-left: 10px; border-left: 3px solid var(--line); color: var(--ink-soft); }
+.msg code { font-family: var(--font-code); font-size: 0.88em; background: var(--grid); padding: 1px 5px; border-radius: 4px; }
+pre.code-block { position: relative; background: var(--ed-bg); color: var(--ed-ink); padding: 24px 12px 10px; border-radius: 8px; overflow-x: auto; margin: 0.6em 0; font-family: var(--font-code); font-size: 0.85rem; }
+pre.code-block code { background: none; padding: 0; color: inherit; font-size: inherit; }
+pre.code-block .lang { position: absolute; top: 5px; right: 10px; font-size: 0.72rem; opacity: 0.7; font-family: var(--font-ui); }
 .chip { display: inline-block; font-size: 0.74rem; border: 1px solid var(--line); border-radius: 99px; padding: 1px 9px; margin: 0 6px 8px 0; color: var(--ink-soft); }
+.chip.fallback, .chip.guard { border-color: var(--red); color: var(--red); }
+.chip.mission { border-color: var(--mint); color: var(--mint); background: var(--mint-bg); }
 
 .composer { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 14px; border-top: 1px solid var(--line); background: var(--panel); flex-shrink: 0; }
 .composer .row { display: flex; gap: 8px; }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { appendOutput, appendTable, outputText, type OutputKind, type Segment } from '../lib/output';
+import { TUTOR_OUTPUT_CHARS, appendOutput, appendTable, outputText, type OutputKind, type Segment } from '../lib/output';
 import { SqlRunner, type SqlResult } from '../sql/SqlRunner';
 import type { Tab } from '../lib/tabs';
 import { PythonRunner, TIME_LIMIT_MS, type RunResult } from '../python/PythonRunner';
@@ -90,8 +90,10 @@ export function useCodeRunner() {
   };
 
   /** After a run: remember what the tutor should see, and end the run. */
-  const finishRun = (tabId: string, endedWithError: boolean) => {
-    setLastRuns((l) => ({ ...l, [tabId]: { output: outputText(outputs.current[tabId] ?? []), endedWithError } }));
+  const finishRun = (tab: Tab, endedWithError: boolean) => {
+    // The tutor gets the output without the app's "▶ title" line at the top.
+    const output = outputText(outputs.current[tab.id] ?? [], Infinity).replace(`▶ ${tab.title}\n`, '').slice(-TUTOR_OUTPUT_CHARS);
+    setLastRuns((l) => ({ ...l, [tab.id]: { output, endedWithError } }));
     busyWith.current = null;
     setRun(null);
     redraw();
@@ -129,7 +131,7 @@ export function useCodeRunner() {
         break;
     }
     outputs.current[tab.id] = segs;
-    finishRun(tab.id, result.outcome !== 'ok' && result.outcome !== 'stopped');
+    finishRun(tab, result.outcome !== 'ok' && result.outcome !== 'stopped');
   };
 
   const start = useCallback(
@@ -158,7 +160,7 @@ export function useCodeRunner() {
       }
       const line = result.line;
       if (line !== null) setErrorLines((e) => ({ ...e, [tab.id]: line }));
-      finishRun(tab.id, result.outcome === 'error' || result.outcome === 'timeout' || result.outcome === 'load-failed');
+      finishRun(tab, result.outcome === 'error' || result.outcome === 'timeout' || result.outcome === 'load-failed');
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [flush, write, interactive],

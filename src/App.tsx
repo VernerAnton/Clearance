@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { levelInfo, modeById, type Level, type ModeId } from '../shared/clearance';
+import { modeById, type Level, type ModeId } from '../shared/clearance';
 import { DEFAULT_LAYOUT, LIMITS, loadLayout, saveLayout, type Layout } from './lib/layout';
 import { loadSettings, saveSettings, type Settings } from './lib/settings';
 import { loadTabs, newId, nextScratchTitle, saveTabs, type Lang, type TabsState } from './lib/tabs';
@@ -8,10 +8,12 @@ import { Rail } from './components/Rail';
 import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
 import { useCodeRunner } from './hooks/useCodeRunner';
+import { ChatFailed, sendChat } from './lib/api';
+import type { HistoryMessage } from '../shared/api';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
-  "(The tutor isn't connected yet. Replies are placeholders until Phase 4.)";
+  'Choose how much help you want on the left. It goes back to Clearance 1 after every message.';
 
 let msgSeq = 0;
 const welcome = (): ChatMessage[] => [{ id: ++msgSeq, role: 'tutor', text: WELCOME }];
@@ -99,31 +101,71 @@ export function App() {
     setLevel(1);
   };
 
-  const send = (text: string) => {
-    const m = modeById(mode);
-    const attached = active.title + (activeId in runner.lastRuns ? ' + last output' : '');
-    const user: ChatMessage = { id: ++msgSeq, role: 'user', text, attached };
-    const where = m.hasLevels ? `${m.label}, Clearance ${level}: ${levelInfo(level).name}` : m.label;
-    const reply: ChatMessage = {
-      id: ++msgSeq,
-      role: 'tutor',
-      chips: [where],
-      text:
-        `Placeholder reply: the tutor connects in Phase 4.\n\n` +
-        `Your message would be sent in ${where}, together with “${active.title}”.`,
-    };
-    setMessages((ms) => [...ms, user, reply]);
+  const [waiting, setWaiting] = useState(false);
 
-    // The level is for one message only. It always goes back to 1 after sending.
-    if (m.hasLevels && level !== 1) {
+  /** The chat so far, as the tutor sees it: no welcome text, no failed messages, no errors. */
+  const historyFor = (msgs: ChatMessage[]): HistoryMessage[] =>
+    msgs.flatMap((msg): HistoryMessage[] => {
+      if (msg.role === 'user' && !msg.failed) return [{ role: 'user', content: msg.text }];
+      if (msg.role === 'tutor' && msg.history !== undefined) return [{ role: 'assistant', content: msg.history }];
+      return [];
+    });
+
+  const send = async (text: string) => {
+    if (waiting) return;
+    const m = modeById(mode);
+    const sentLevel = level;
+    const tab = active;
+    const lastRun = runner.lastRuns[tab.id] ?? null;
+    const userMsg: ChatMessage = {
+      id: ++msgSeq,
+      role: 'user',
+      text,
+      attached: tab.title + (lastRun ? ' + last output' : ''),
+    };
+    const history = historyFor(messages);
+    setMessages((ms) => [...ms, userMsg]);
+    setWaiting(true);
+
+    // The level is for one message only: it goes back to 1 as soon as a message is sent.
+    if (m.hasLevels && sentLevel !== 1) {
       setResetNote('Clearance reset: back to 1 for your next message.');
       window.clearTimeout(resetTimer.current);
       resetTimer.current = window.setTimeout(() => setResetNote(''), 3000);
     }
     setLevel(1);
+
+    try {
+      const res = await sendChat({
+        mode,
+        level: m.hasLevels ? sentLevel : 1,
+        message: text,
+        history,
+        activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
+        lastRun,
+      });
+      const where = m.hasLevels ? `${m.label}, Clearance ${sentLevel}` : m.label;
+      const reply: ChatMessage = {
+        id: ++msgSeq,
+        role: 'tutor',
+        text: res.reply,
+        history: res.reply,
+        chips: [{ text: `${where}${res.attempts > 1 ? `, ${res.attempts} attempts` : ''}` }],
+      };
+      setMessages((ms) => [...ms, reply]);
+    } catch (err) {
+      const message = err instanceof ChatFailed ? err.message : 'Something went wrong. Try again.';
+      setMessages((ms) => [
+        ...ms.map((msg) => (msg.id === userMsg.id ? { ...userMsg, failed: true } : msg)),
+        { id: ++msgSeq, role: 'error', text: message },
+      ]);
+    } finally {
+      setWaiting(false);
+    }
   };
 
   const newMission = () => {
+    if (waiting) return;
     setMessages(welcome());
     setLevel(1);
   };
@@ -193,6 +235,7 @@ export function App() {
         activeTitle={active.title}
         hasLastRun={activeId in runner.lastRuns}
         messages={messages}
+        waiting={waiting}
         onSend={send}
       />
     </div>

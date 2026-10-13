@@ -18,10 +18,13 @@
     "noEmit": true,
     "types": [
       "vite/client"
-    ]
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src",
-    "shared"
+    "shared",
+    "server",
+    "functions"
   ]
 }

@@ -1,15 +1,27 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
+import { Markdown } from './Markdown';
 
-export interface ChatMessage {
-  id: number;
-  role: 'user' | 'tutor';
-  text: string;
-  /** For user messages: what the app sent along, e.g. "Filter positives". */
-  attached?: string;
-  /** Small labels above a tutor reply, e.g. "Debug, Clearance 3". */
-  chips?: string[];
-}
+export type ChatMessage =
+  | {
+      id: number;
+      role: 'user';
+      text: string;
+      /** What the app sent along, e.g. "Filter positives + last output". */
+      attached: string;
+      /** The request failed, so this message is left out of the history sent to the tutor. */
+      failed?: boolean;
+    }
+  | {
+      id: number;
+      role: 'tutor';
+      text: string;
+      /** Small labels above the reply, e.g. "Debug, Clearance 3". */
+      chips?: { text: string; tone?: 'fallback' | 'mission' | 'guard' }[];
+      /** What goes into the history for later messages. Missing for the welcome text. */
+      history?: string;
+    }
+  | { id: number; role: 'error'; text: string };
 
 interface Props {
   mode: ModeId;
@@ -17,22 +29,23 @@ interface Props {
   activeTitle: string;
   hasLastRun: boolean;
   messages: ChatMessage[];
+  waiting: boolean;
   onSend: (text: string) => void;
 }
 
-export function Chat({ mode, level, activeTitle, hasLastRun, messages, onSend }: Props) {
+export function Chat({ mode, level, activeTitle, hasLastRun, messages, waiting, onSend }: Props) {
   const [draft, setDraft] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
   const m = modeById(mode);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
-  }, [messages]);
+  }, [messages, waiting]);
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
     const text = draft.trim();
-    if (!text) return;
+    if (!text || waiting) return;
     onSend(text);
     setDraft('');
   };
@@ -54,25 +67,34 @@ export function Chat({ mode, level, activeTitle, hasLastRun, messages, onSend }:
       </div>
 
       <div className="log" ref={logRef} aria-live="polite">
-        {messages.map((msg) =>
-          msg.role === 'user' ? (
-            <div key={msg.id} className="msg user">
-              {msg.text}
-              {msg.attached && <span className="attached">📎 {msg.attached}</span>}
-            </div>
-          ) : (
+        {messages.map((msg) => {
+          if (msg.role === 'user') {
+            return (
+              <div key={msg.id} className={`msg user${msg.failed ? ' failed' : ''}`}>
+                {msg.text}
+                <span className="attached">📎 {msg.attached}</span>
+              </div>
+            );
+          }
+          if (msg.role === 'error') {
+            return (
+              <div key={msg.id} className="msg error" role="alert">
+                <strong>Couldn’t get a reply.</strong> <Markdown text={msg.text} />
+              </div>
+            );
+          }
+          return (
             <div key={msg.id} className="msg bot">
               {msg.chips?.map((c) => (
-                <span key={c} className="chip">
-                  {c}
+                <span key={c.text} className={`chip${c.tone ? ` ${c.tone}` : ''}`}>
+                  {c.text}
                 </span>
               ))}
-              {msg.text.split(/\n{2,}/).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+              <Markdown text={msg.text} />
             </div>
-          ),
-        )}
+          );
+        })}
+        {waiting && <div className="msg bot thinking">Drafting a reply…</div>}
       </div>
 
       <form className="composer" onSubmit={submit}>
@@ -87,7 +109,7 @@ export function Chat({ mode, level, activeTitle, hasLastRun, messages, onSend }:
             onKeyDown={onKey}
             placeholder="Ask about your code. Enter sends, Shift+Enter adds a line."
           />
-          <button className="btn primary" type="submit">
+          <button className="btn primary" type="submit" disabled={waiting}>
             Send
           </button>
         </div>

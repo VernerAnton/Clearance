@@ -36,10 +36,12 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 ## Commands (fill in as they're created)
 
 - `npm install`: install dependencies (once, and after pulling changes to `package.json`)
-- `npm run dev`: frontend only, at http://localhost:5173
+- `npm start`: build, then serve the whole app (page + tutor API) at http://localhost:8788. Needs `.dev.vars`.
+- `npm run dev`: frontend only, at http://localhost:5173. `/api` calls are forwarded to port 8788, so run `npx wrangler pages dev` alongside it for the tutor.
 - `npm run build`: typecheck, then build the site into `dist/`
 - `npx wrangler pages dev`: the built site from `dist/` + functions, with `.dev.vars` and the `public/_headers` headers (run `npm run build` first)
 - `npm test`: unit tests (Vitest)
+- `npm run prompts`: regenerate `server/prompts.generated.ts` from `prompts/*.md` (runs automatically before test, typecheck and build)
 - `npm run typecheck`: TypeScript check only (browser code, then `vite.config.ts` + `scripts/`)
 
 ## Layout of the code
@@ -50,6 +52,8 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `src/sql/`: the SQL runner. `sql.worker.ts` runs sql.js on a fresh database per run, `SqlRunner.ts` adds the time limit and Stop.
 - `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
 - `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
-- `functions/api/`: Cloudflare Pages Functions (the backend).
+- `functions/api/`: Cloudflare Pages Functions. Thin: they call into `server/`.
+- `server/`: the backend logic (validation, message building, OpenRouter calls, guard, missions), with unit tests. `prompts.generated.ts` is generated, not committed.
+- `shared/api.ts`: the /api/chat request and response types, used by both sides.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
 - `public/_headers`: COOP/COEP headers for Cloudflare. `vite.config.ts` sets the same headers for dev and preview.
