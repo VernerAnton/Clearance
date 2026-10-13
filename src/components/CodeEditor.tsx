@@ -19,16 +19,24 @@ import {
   syntaxHighlighting,
 } from '@codemirror/language';
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
+import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { python } from '@codemirror/lang-python';
 import { sql, SQLite } from '@codemirror/lang-sql';
 import { tags as t } from '@lezer/highlight';
 import type { Lang } from '../lib/tabs';
 
+/** Optional editor help, each switched on in Settings. */
+export interface EditorHelpers {
+  liveLinting: boolean;
+  autocomplete: boolean;
+  closeBrackets: boolean;
+}
+
 interface Props {
   tabId: string;
   lang: Lang;
   code: string;
-  liveLinting: boolean;
+  helpers: EditorHelpers;
   /** Changes when the editor should take focus (e.g. a new tab was opened). */
   focusTick: number;
   onChange: (code: string) => void;
@@ -52,6 +60,8 @@ const editorTheme = EditorView.theme(
     },
     '&.cm-focused .cm-matchingBracket': { backgroundColor: 'rgba(242, 193, 78, 0.25)', outline: 'none' },
     '&.cm-focused': { outline: 'none' },
+    '.cm-tooltip-autocomplete ul li[aria-selected]': { backgroundColor: 'var(--ed-line)', color: 'var(--ed-ink)' },
+    '.cm-completionMatchedText': { textDecoration: 'none', color: 'var(--ed-yellow)' },
     '.cm-tooltip': { backgroundColor: 'var(--ed-gutter)', color: 'var(--ed-ink)', border: '1px solid var(--ed-line)' },
   },
   { dark: true },
@@ -117,21 +127,30 @@ const syntaxLinter = linter(
   { delay: 600 },
 );
 
+function helperExtensions(h: EditorHelpers): Extension[] {
+  const out: Extension[] = [];
+  if (h.liveLinting) out.push(syntaxLinter, lintGutter());
+  // Suggestions come from the language: Python keywords, built-ins and names in the file; SQL keywords.
+  if (h.autocomplete) out.push(autocompletion({ icons: false }));
+  if (h.closeBrackets) out.push(closeBrackets(), keymap.of(closeBracketsKeymap));
+  return out;
+}
+
 function languageFor(lang: Lang): Extension {
   return lang === 'sql' ? sql({ dialect: SQLite }) : python();
 }
 
-export function CodeEditor({ tabId, lang, code, liveLinting, focusTick, onChange, onRun }: Props) {
+export function CodeEditor({ tabId, lang, code, helpers, focusTick, onChange, onRun }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Each tab keeps its own editor state, so undo history and cursor survive tab switches.
   const statesRef = useRef(new Map<string, EditorState>());
   const tabIdRef = useRef(tabId);
   const languageConf = useRef(new Compartment());
-  const lintConf = useRef(new Compartment());
+  const helperConf = useRef(new Compartment());
   // The latest callbacks and settings, readable from inside CodeMirror without rebuilding it.
-  const latest = useRef({ onChange, onRun, liveLinting });
-  latest.current = { onChange, onRun, liveLinting };
+  const latest = useRef({ onChange, onRun, helpers });
+  latest.current = { onChange, onRun, helpers };
 
   const makeState = (doc: string, language: Lang) =>
     EditorState.create({
@@ -156,7 +175,7 @@ export function CodeEditor({ tabId, lang, code, liveLinting, focusTick, onChange
         syntaxHighlighting(highlight),
         editorTheme,
         languageConf.current.of(languageFor(language)),
-        lintConf.current.of(latest.current.liveLinting ? [syntaxLinter, lintGutter()] : []),
+        helperConf.current.of(helperExtensions(latest.current.helpers)),
         EditorView.contentAttributes.of({ 'aria-label': 'Code editor' }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) latest.current.onChange(update.state.doc.toString());
@@ -180,19 +199,16 @@ export function CodeEditor({ tabId, lang, code, liveLinting, focusTick, onChange
     tabIdRef.current = tabId;
     const saved = statesRef.current.get(tabId);
     view.setState(saved && saved.doc.toString() === code ? saved : makeState(code, lang));
-    // A parked state may have been made with the other linting setting.
-    view.dispatch({
-      effects: lintConf.current.reconfigure(liveLinting ? [syntaxLinter, lintGutter()] : []),
-    });
+    // A parked state may have been made with different settings.
+    view.dispatch({ effects: helperConf.current.reconfigure(helperExtensions(helpers)) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabId]);
 
-  // Turning live linting on or off.
+  // Turning a setting on or off.
+  const { liveLinting, autocomplete, closeBrackets: autoClose } = helpers;
   useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: lintConf.current.reconfigure(liveLinting ? [syntaxLinter, lintGutter()] : []),
-    });
-  }, [liveLinting]);
+    viewRef.current?.dispatch({ effects: helperConf.current.reconfigure(helperExtensions(latest.current.helpers)) });
+  }, [liveLinting, autocomplete, autoClose]);
 
   useEffect(() => {
     if (focusTick > 0) viewRef.current?.focus();

@@ -54,18 +54,41 @@ button, textarea, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* Scroll bars are hidden everywhere; the wheel, trackpad, touch and keyboard still scroll. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+/* While a divider is being dragged: no text selection, resize cursor everywhere. */
+body.resizing { user-select: none; -webkit-user-select: none; }
+body.resizing-x, body.resizing-x * { cursor: col-resize !important; }
+body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .app {
+  /* --rail-w and --chat-w are set from the saved layout. The chat never squeezes
+     the editor column below 360px, whatever width was saved. */
+  --chat-col: clamp(280px, var(--chat-w, 460px), calc(100% - var(--rail-w, 252px) - 360px));
+  position: relative;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: var(--rail-w, 252px) minmax(0, 1fr) var(--chat-col);
   height: 100%;
   max-width: 1600px;
   margin: 0 auto;
 }
 .rail { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; }
-.work { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
+.work { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); container-type: inline-size; }
 .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--paper); }
+
+/* ---------- Dividers you can drag ---------- */
+.splitter { position: absolute; z-index: 5; touch-action: none; }
+.splitter::after { content: ''; position: absolute; background: transparent; transition: background-color 0.15s; }
+.splitter:hover::after, .splitter:focus-visible::after, body.resizing .splitter:active::after { background: var(--neon); }
+.splitter:focus-visible { outline: none; }
+.splitter-x { top: 0; bottom: 0; width: 9px; cursor: col-resize; }
+.splitter-x::after { top: 0; bottom: 0; left: 3px; width: 3px; }
+.rail-splitter { left: calc(var(--rail-w, 252px) - 5px); }
+.chat-splitter { right: calc(var(--chat-col) - 5px); }
+.splitter-y { left: 0; right: 0; top: -5px; height: 9px; cursor: row-resize; }
+.splitter-y::after { left: 0; right: 0; top: 3px; height: 3px; }
 
 /* ---------- Rail ---------- */
 .brand h1 { font-size: 1.4rem; margin: 0; line-height: 1.2; letter-spacing: 0.01em; }
@@ -100,6 +123,9 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .ladder.off .rung { opacity: 0.4; }
 .reset-note { min-height: 1.3em; color: var(--mint); font-size: 0.82rem; margin: 4px 0 0; font-weight: 700; }
 
+.settings { display: flex; flex-direction: column; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; }
+.field select { width: 100%; border: 1.5px solid var(--line); border-radius: 6px; background: var(--paper); padding: 6px 8px; }
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.88rem; }
 .check input { margin-top: 4px; accent-color: var(--ink); }
 .btn { border: 1.5px solid var(--ink); background: transparent; border-radius: 6px; padding: 7px 13px; font-weight: 700; }
@@ -121,21 +147,26 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .tab .x:disabled { opacity: 0.2; }
 .newtab { display: flex; gap: 4px; margin-left: 8px; padding-bottom: 6px; flex-shrink: 0; }
 
-.editor { flex: 1; min-height: 220px; display: flex; flex-direction: column; background: var(--ed-bg); position: relative; }
+.editor { flex: 1 1 0; min-height: 120px; display: flex; flex-direction: column; background: var(--ed-bg); position: relative; }
 .editor-host { flex: 1; min-height: 0; font-size: 14px; }
 .editor-host .cm-editor { height: 100%; }
 .owner { position: absolute; right: 14px; top: 8px; font-size: 0.75rem; color: var(--ed-dim); pointer-events: none; }
 
+.console { position: relative; display: flex; flex-direction: column; flex: 0 1 auto; min-height: 90px; }
 .runbar { display: flex; align-items: center; gap: 10px; background: var(--ed-gutter); color: var(--ed-ink); padding: 7px 12px; border-top: 1px solid var(--ed-line); flex-wrap: wrap; flex-shrink: 0; }
 .run { background: var(--ed-mint); color: #0b2a1e; border: 0; border-radius: 6px; padding: 5px 14px; font-weight: 700; }
 .runstate { font-size: 0.82rem; color: var(--ed-dim); margin-right: auto; }
 .runbar kbd { font-family: var(--font-code); font-size: 0.72rem; border: 1px solid var(--ed-line); border-radius: 4px; padding: 0 4px; }
 .clearout { background: none; border: 0; color: var(--ed-dim); font-size: 0.82rem; text-decoration: underline; }
 
-.output { height: 34%; min-height: 140px; background: var(--ed-bg); color: var(--ed-ink); border-top: 1px solid var(--ed-line); overflow: auto; padding: 10px 14px; font-family: var(--font-code); font-size: 13px; line-height: 1.55; flex-shrink: 0; }
+.output { flex: 1; min-height: 0; background: var(--ed-bg); color: var(--ed-ink); border-top: 1px solid var(--ed-line); overflow: auto; padding: 10px 14px; font-family: var(--font-code); font-size: 13px; line-height: 1.55; flex-shrink: 0; }
 .output .line { white-space: pre-wrap; word-break: break-word; }
 .output .err { color: var(--ed-red); }
 .output .sys { color: var(--ed-dim); font-style: italic; }
+
+/* When the editor column is dragged narrow, drop the run bar's hint text first. */
+@container (max-width: 620px) { .tabhint { display: none; } }
+@container (max-width: 440px) { .runstate { visibility: hidden; } }
 
 /* ---------- Chat ---------- */
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; flex-shrink: 0; }
@@ -158,6 +189,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 /* ---------- Smaller screens: panels stack, nothing scrolls sideways ---------- */
 @media (max-width: 1100px) {
   .app { grid-template-columns: 236px minmax(0, 1fr); height: auto; min-height: 100%; }
+  .col-splitter { display: none; }
   .work { min-height: 80vh; border-right: 0; }
   .chat { grid-column: 1 / -1; border-top: 1px solid var(--line); min-height: 70vh; }
 }

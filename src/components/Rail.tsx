@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { LEVELS, MODES, levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
-import type { Settings } from '../lib/settings';
+import type { Settings, Theme } from '../lib/settings';
 
 interface Props {
   mode: ModeId;
@@ -110,17 +110,36 @@ export function Rail({ mode, level, resetNote, settings, onMode, onLevel, onNewM
 
       <section>
         <h2>Settings</h2>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.liveLinting}
-            onChange={(e) => onSettings({ ...settings, liveLinting: e.target.checked })}
-          />
-          <span>
-            Live linting
-            <span className="hint block">Underlines syntax errors while you type.</span>
-          </span>
-        </label>
+        <div className="settings">
+          {(
+            [
+              ['liveLinting', 'Live linting', 'Underlines syntax errors while you type.'],
+              ['autocomplete', 'Autocomplete', 'Suggests names and keywords while you type.'],
+              ['closeBrackets', 'Auto-close brackets', 'Typing ( [ { or a quote adds the closing one.'],
+            ] as const
+          ).map(([key, name, plain]) => (
+            <label className="check" key={key}>
+              <input
+                type="checkbox"
+                checked={settings[key]}
+                onChange={(e) => onSettings({ ...settings, [key]: e.target.checked })}
+              />
+              <span>
+                {name}
+                <span className="hint block">{plain}</span>
+              </span>
+            </label>
+          ))}
+          <label className="field">
+            <span>Theme</span>
+            <select value={settings.theme} onChange={(e) => onSettings({ ...settings, theme: e.target.value as Theme })}>
+              <option value="system">Same as my computer</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <p className="hint">Drag the lines between panels to resize them. Double-click a line to reset it.</p>
+        </div>
       </section>
     </aside>
   );

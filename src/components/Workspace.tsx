@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type WheelEvent } from 'react';
+import { LIMITS } from '../lib/layout';
 import type { Lang, Tab } from '../lib/tabs';
-import { CodeEditor } from './CodeEditor';
+import { CodeEditor, type EditorHelpers } from './CodeEditor';
+import { Splitter } from './Splitter';
 
 export interface OutputLine {
   kind: 'out' | 'err' | 'sys';
@@ -11,8 +13,11 @@ interface Props {
   tabs: Tab[];
   activeId: string;
   output: OutputLine[];
-  liveLinting: boolean;
+  helpers: EditorHelpers;
   focusTick: number;
+  outputHeight: number;
+  onOutputHeight: (height: number) => void;
+  onOutputReset: () => void;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onNew: (lang: Lang) => void;
@@ -24,11 +29,27 @@ interface Props {
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function Workspace(props: Props) {
-  const { tabs, activeId, output, liveLinting, focusTick, onSelect, onClose, onNew, onCode, onRun, onClearOutput } = props;
+  const { tabs, activeId, output, helpers, focusTick, onSelect, onClose, onNew, onCode, onRun, onClearOutput } = props;
+  const { outputHeight, onOutputHeight, onOutputReset } = props;
   const active = tabs.find((t) => t.id === activeId)!;
   const outRef = useRef<HTMLDivElement>(null);
 
   const tabsRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // The output can grow until the editor is down to its minimum height.
+  const outputBounds = () => {
+    const editor = editorRef.current?.offsetHeight ?? 0;
+    return {
+      min: LIMITS.outputHeight.min,
+      max: Math.min(LIMITS.outputHeight.max, outputHeight + editor - LIMITS.minEditorHeight),
+    };
+  };
+
+  // Without a scroll bar, let the mouse wheel scroll the tab row sideways.
+  const onTabsWheel = (e: WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+  };
 
   // Keep the active tab visible when the tab row is wider than the screen.
   useEffect(() => {
@@ -48,7 +69,7 @@ export function Workspace(props: Props) {
   return (
     <section className="work" aria-label="Code workspace">
       <div className="tabs">
-        <div className="tablist" ref={tabsRef} role="tablist" aria-label="Open files">
+        <div className="tablist" ref={tabsRef} onWheel={onTabsWheel} role="tablist" aria-label="Open files">
           {tabs.map((t) => (
             <div key={t.id} className="tab" data-active={t.id === activeId}>
               <button
@@ -93,12 +114,12 @@ export function Workspace(props: Props) {
         </div>
       </div>
 
-      <div className="editor" role="tabpanel" aria-label={active.title}>
+      <div className="editor" ref={editorRef} role="tabpanel" aria-label={active.title}>
         <CodeEditor
           tabId={active.id}
           lang={active.lang}
           code={active.code}
-          liveLinting={liveLinting}
+          helpers={helpers}
           focusTick={focusTick}
           onChange={onCode}
           onRun={onRun}
@@ -106,31 +127,42 @@ export function Workspace(props: Props) {
         {active.fromMission && <span className="owner">Mission from the tutor</span>}
       </div>
 
-      <div className="runbar">
-        <button type="button" className="run" onClick={onRun}>
-          ▶ Run
-        </button>
-        <span className="runstate">
-          <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
-          <span className="tabhint"> · Esc then Tab leaves the editor</span>
-        </span>
-        <button type="button" className="clearout" onClick={onClearOutput}>
-          Clear output
-        </button>
-      </div>
+      <div className="console" style={{ height: outputHeight }}>
+        <Splitter
+          axis="y"
+          label="Resize output"
+          value={outputHeight}
+          grow={-1}
+          bounds={outputBounds}
+          onChange={onOutputHeight}
+          onReset={onOutputReset}
+        />
+        <div className="runbar">
+          <button type="button" className="run" onClick={onRun}>
+            ▶ Run
+          </button>
+          <span className="runstate">
+            <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
+            <span className="tabhint"> · Esc then Tab leaves the editor</span>
+          </span>
+          <button type="button" className="clearout" onClick={onClearOutput}>
+            Clear output
+          </button>
+        </div>
 
-      <div className="output" ref={outRef} aria-live="polite" aria-label="Output">
-        {output.length === 0 ? (
-          <div className="line sys">
-            {active.lang === 'sql' ? 'Results appear here as a table.' : 'Output from print() and input() appears here.'}
-          </div>
-        ) : (
-          output.map((l, i) => (
-            <div key={i} className={`line ${l.kind}`}>
-              {l.text}
+        <div className="output" ref={outRef} aria-live="polite" aria-label="Output">
+          {output.length === 0 ? (
+            <div className="line sys">
+              {active.lang === 'sql' ? 'Results appear here as a table.' : 'Output from print() and input() appears here.'}
             </div>
-          ))
-        )}
+          ) : (
+            output.map((l, i) => (
+              <div key={i} className={`line ${l.kind}`}>
+                {l.text}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </section>
   );

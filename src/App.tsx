@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { levelInfo, modeById, type Level, type ModeId } from '../shared/clearance';
+import { DEFAULT_LAYOUT, LIMITS, loadLayout, saveLayout, type Layout } from './lib/layout';
 import { loadSettings, saveSettings, type Settings } from './lib/settings';
 import { loadTabs, newId, nextScratchTitle, saveTabs, type Lang, type TabsState } from './lib/tabs';
 import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
+import { Splitter } from './components/Splitter';
 import { Workspace, type OutputLine } from './components/Workspace';
 
 const WELCOME =
@@ -22,6 +24,8 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [messages, setMessages] = useState<ChatMessage[]>(welcome);
   const [focusTick, setFocusTick] = useState(0);
+  const [layout, setLayout] = useState<Layout>(loadLayout);
+  const appRef = useRef<HTMLDivElement>(null);
   const resetTimer = useRef<number | undefined>(undefined);
 
   const { tabs, activeId } = tabsState;
@@ -34,6 +38,26 @@ export function App() {
   }, [tabsState]);
 
   useEffect(() => saveSettings(settings), [settings]);
+
+  // Light / dark: no attribute means "follow the computer's setting".
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'system') delete root.dataset.theme;
+    else root.dataset.theme = settings.theme;
+  }, [settings.theme]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => saveLayout(layout), 300);
+    return () => window.clearTimeout(timer);
+  }, [layout]);
+
+  const resize = (patch: Partial<Layout>) => setLayout((l) => ({ ...l, ...patch }));
+  // A column can grow until the editor column is down to its minimum width.
+  const columnBounds = (key: 'railWidth' | 'chatWidth') => () => {
+    const total = appRef.current?.clientWidth ?? window.innerWidth;
+    const other = key === 'railWidth' ? layout.chatWidth : layout.railWidth;
+    return { min: LIMITS[key].min, max: Math.min(LIMITS[key].max, total - other - LIMITS.minWorkWidth) };
+  };
 
   const updateCode = useCallback(
     (code: string) =>
@@ -108,7 +132,11 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    <div
+      className="app"
+      ref={appRef}
+      style={{ '--rail-w': `${layout.railWidth}px`, '--chat-w': `${layout.chatWidth}px` } as CSSProperties}
+    >
       <Rail
         mode={mode}
         level={level}
@@ -119,18 +147,41 @@ export function App() {
         onNewMission={newMission}
         onSettings={setSettings}
       />
+      <Splitter
+        axis="x"
+        className="col-splitter rail-splitter"
+        label="Resize left panel"
+        value={layout.railWidth}
+        grow={1}
+        bounds={columnBounds('railWidth')}
+        onChange={(railWidth) => resize({ railWidth })}
+        onReset={() => resize({ railWidth: DEFAULT_LAYOUT.railWidth })}
+      />
       <Workspace
         tabs={tabs}
         activeId={activeId}
         output={outputs[activeId] ?? []}
-        liveLinting={settings.liveLinting}
+        helpers={settings}
         focusTick={focusTick}
+        outputHeight={layout.outputHeight}
+        onOutputHeight={(outputHeight) => resize({ outputHeight })}
+        onOutputReset={() => resize({ outputHeight: DEFAULT_LAYOUT.outputHeight })}
         onSelect={(id) => setTabsState((s) => ({ ...s, activeId: id }))}
         onClose={closeTab}
         onNew={newTab}
         onCode={updateCode}
         onRun={run}
         onClearOutput={() => setOutputs((o) => ({ ...o, [activeId]: [] }))}
+      />
+      <Splitter
+        axis="x"
+        className="col-splitter chat-splitter"
+        label="Resize chat panel"
+        value={layout.chatWidth}
+        grow={-1}
+        bounds={columnBounds('chatWidth')}
+        onChange={(chatWidth) => resize({ chatWidth })}
+        onReset={() => resize({ chatWidth: DEFAULT_LAYOUT.chatWidth })}
       />
       <Chat mode={mode} level={level} activeTitle={active.title} messages={messages} onSend={send} />
     </div>

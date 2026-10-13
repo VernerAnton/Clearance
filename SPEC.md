@@ -71,6 +71,8 @@ Tick items as they're done. Stop after each phase for review.
 - [x] Live linting (underlining errors while typing) is **off**. Add a setting for it, default off.
 - [x] Tabs and their code persist in localStorage. Start with one example Python tab and one SQL tab.
 - [x] Chat panel with a placeholder reply (no backend yet).
+- [x] Added after review: settings for autocomplete and auto-close brackets (both default off), and a theme choice (follow the computer, light, dark).
+- [x] Added after review: drag the dividers to resize the three columns and the output area. Sizes are saved; double-click a divider to reset it. Scroll bars are hidden.
 
 ### Phase 2: Python runner
 - [ ] Pyodide in a Web Worker, files served from this site.
@@ -118,7 +120,7 @@ Runs on the server for every reply.
 ### Phase 7: Theme and polish
 - [ ] Clearance vocabulary everywhere (section 2), neon accent on the ladder, both themes checked.
 - [ ] Keyboard focus visible everywhere; `prefers-reduced-motion` respected.
-- [ ] Settings: live linting, debug panel.
+- [ ] Settings: live linting, debug panel. (Live linting, autocomplete, auto-close brackets and theme exist since Phase 1.)
 
 ### Phase 8: Deploy
 - [ ] GitHub repo connected to Cloudflare Pages; push deploys automatically.

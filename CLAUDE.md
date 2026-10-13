@@ -43,6 +43,6 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 ## Layout of the code
 
 - `shared/`: code used by both the browser and the server (modes, clearance levels).
-- `src/lib/`: pure logic (tabs and their storage, settings). Unit tests sit next to it as `*.test.ts`.
-- `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`).
+- `src/lib/`: pure logic (tabs and their storage, settings, panel sizes). Unit tests sit next to it as `*.test.ts`.
+- `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
 - `functions/api/`: Cloudflare Pages Functions (the backend).
