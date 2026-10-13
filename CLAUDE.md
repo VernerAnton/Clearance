@@ -6,7 +6,9 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 
 ## How to work
 
-- Build one phase of `SPEC.md` at a time. When a phase's checklist is done, tick it in `SPEC.md`, summarize what changed and how to try it, and **stop** for the user to review.
+- Build the phases of `SPEC.md` in order. When a phase's checklist is done, tick it in `SPEC.md` and commit, then go straight on to the next phase. Test each phase yourself (unit tests, and the app in a browser) before moving on.
+- **Stop at the end of Phase 6** (the app works end to end) for the user to try it. Phase 7 (polish) is driven by what the user finds while actually using the app, and Phase 8 (deploy) needs their accounts, so both wait for them.
+- At a stop, summarize what changed and how to try it, including anything the user must set up (such as `.dev.vars`).
 - The user is learning to code. Explain decisions in plain language, briefly. Don't assume they know a tool's internals.
 - If something in `SPEC.md` turns out to be impossible or a bad idea, say so and propose an alternative before building around it.
 - Keep dependencies few. Ask before adding a large one that isn't named in the spec.
