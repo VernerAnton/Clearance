@@ -24,7 +24,8 @@
     "@lezer/highlight": "^1.2.5",
     "pyodide": "^314.0.7",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

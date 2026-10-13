@@ -86,9 +86,9 @@ Tick items as they're done. Stop after each phase for review.
 - [x] Store the last run's output per tab for the tutor.
 
 ### Phase 3: SQL runner
-- [ ] sql.js (WASM), self-hosted. Fresh in-memory database on every run, so a tab's CREATE/INSERT statements run together with the query.
-- [ ] Results shown as tables (row count under each), errors in the same panel.
-- [ ] Last run's output stored per tab as plain text.
+- [x] sql.js (WASM), self-hosted. Fresh in-memory database on every run, so a tab's CREATE/INSERT statements run together with the query.
+- [x] Results shown as tables (row count under each), errors in the same panel.
+- [x] Last run's output stored per tab as plain text.
 
 ### Phase 4: Tutor backend
 - [ ] `POST /api/chat` in Pages Functions. Reads `OPENROUTER_API_KEY`, `TUTOR_MODEL`, `JUDGE_MODEL` from env.

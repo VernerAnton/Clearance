@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { appendOutput, outputText, type OutputKind, type Segment } from '../lib/output';
+import { appendOutput, appendTable, outputText, type OutputKind, type Segment } from '../lib/output';
+import { SqlRunner, type SqlResult } from '../sql/SqlRunner';
 import type { Tab } from '../lib/tabs';
 import { PythonRunner, TIME_LIMIT_MS, type RunResult } from '../python/PythonRunner';
 import type { RunPhase } from '../components/Workspace';
@@ -14,6 +15,10 @@ export interface LastRun {
 // so Python is (usually) ready by the time the learner presses Run.
 let pythonRunner: PythonRunner | null = null;
 const getPythonRunner = () => (pythonRunner ??= new PythonRunner());
+let sqlRunner: SqlRunner | null = null;
+const getSqlRunner = () => (sqlRunner ??= new SqlRunner());
+
+const TIMEOUT_MESSAGE = `Stopped: ran longer than ${TIME_LIMIT_MS / 1000} seconds. Check for a loop that never ends.\n`;
 
 /** Lines typed in the fallback Input box, one per input() call. */
 function stdinLines(text: string): string[] {
@@ -44,8 +49,12 @@ export function useCodeRunner() {
   stdinRef.current = stdinTexts;
   const [interactive] = useState(() => typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated);
 
+  // Which runner is busy, so Stop goes to the right one.
+  const busyWith = useRef<'python' | 'sql' | null>(null);
+
   useEffect(() => {
     getPythonRunner();
+    getSqlRunner();
   }, []);
 
   const flush = useCallback(() => {
@@ -69,7 +78,7 @@ export function useCodeRunner() {
       case 'ok':
         return ['sys', `Finished in ${Math.round(r.ms)} ms\n`];
       case 'timeout':
-        return ['err', `Stopped: ran longer than ${TIME_LIMIT_MS / 1000} seconds. Check for a loop that never ends.\n`];
+        return ['err', TIMEOUT_MESSAGE];
       case 'stopped':
       case 'interrupted':
         return ['sys', 'Stopped.\n'];
@@ -80,20 +89,59 @@ export function useCodeRunner() {
     }
   };
 
+  /** After a run: remember what the tutor should see, and end the run. */
+  const finishRun = (tabId: string, endedWithError: boolean) => {
+    setLastRuns((l) => ({ ...l, [tabId]: { output: outputText(outputs.current[tabId] ?? []), endedWithError } }));
+    busyWith.current = null;
+    setRun(null);
+    redraw();
+  };
+
+  const runSql = async (tab: Tab) => {
+    busyWith.current = 'sql';
+    setRun({ tabId: tab.id, phase: 'running' });
+    redraw();
+    const result: SqlResult = await getSqlRunner().run(tab.code);
+    let segs = outputs.current[tab.id] ?? [];
+    for (const table of result.tables) segs = appendTable(segs, table);
+    switch (result.outcome) {
+      case 'ok':
+        if (result.tables.length === 0) {
+          segs = appendOutput(segs, 'sys', 'The statements ran. Nothing was selected, so there are no rows to show.\n');
+        }
+        segs = appendOutput(segs, 'sys', `Finished in ${Math.round(result.ms)} ms\n`);
+        break;
+      case 'error': {
+        const where = result.error?.line ? ` (line ${result.error.line})` : '';
+        segs = appendOutput(segs, 'err', `Error${where}: ${result.error?.message}\n`);
+        const line = result.error?.line;
+        if (line) setErrorLines((e) => ({ ...e, [tab.id]: line }));
+        break;
+      }
+      case 'timeout':
+        segs = appendOutput(segs, 'err', TIMEOUT_MESSAGE);
+        break;
+      case 'stopped':
+        segs = appendOutput(segs, 'sys', 'Stopped.\n');
+        break;
+      case 'load-failed':
+        segs = appendOutput(segs, 'err', `SQL could not load. Reload the page to try again.\n(${result.error?.message})\n`);
+        break;
+    }
+    outputs.current[tab.id] = segs;
+    finishRun(tab.id, result.outcome !== 'ok' && result.outcome !== 'stopped');
+  };
+
   const start = useCallback(
     async (tab: Tab) => {
-      const runner = getPythonRunner();
-      if (runner.busy) return;
+      if (busyWith.current) return;
       flush();
       outputs.current[tab.id] = appendOutput([], 'sys', `▶ ${tab.title}\n`);
       setErrorLines((e) => omit(e, tab.id));
+      if (tab.lang === 'sql') return runSql(tab);
 
-      if (tab.lang === 'sql') {
-        outputs.current[tab.id] = appendOutput(outputs.current[tab.id], 'sys', 'Nothing ran: the SQL runner arrives in Phase 3.\n');
-        redraw();
-        return;
-      }
-
+      const runner = getPythonRunner();
+      busyWith.current = 'python';
       setRun({ tabId: tab.id, phase: 'loading' });
       redraw();
       const filename = tab.title.endsWith('.py') ? tab.title : 'main.py';
@@ -110,20 +158,13 @@ export function useCodeRunner() {
       }
       const line = result.line;
       if (line !== null) setErrorLines((e) => ({ ...e, [tab.id]: line }));
-      setLastRuns((l) => ({
-        ...l,
-        [tab.id]: {
-          output: outputText(outputs.current[tab.id] ?? []),
-          endedWithError: result.outcome === 'error' || result.outcome === 'timeout' || result.outcome === 'load-failed',
-        },
-      }));
-      setRun(null);
-      redraw();
+      finishRun(tab.id, result.outcome === 'error' || result.outcome === 'timeout' || result.outcome === 'load-failed');
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [flush, write, interactive],
   );
 
-  const stop = useCallback(() => getPythonRunner().stop(), []);
+  const stop = useCallback(() => (busyWith.current === 'sql' ? getSqlRunner().stop() : getPythonRunner().stop()), []);
   const provideInput = useCallback((text: string) => getPythonRunner().provideInput(text), []);
 
   const clearOutput = useCallback((tabId: string) => {

@@ -170,6 +170,13 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 
 .output { flex: 1; min-height: 0; background: var(--ed-bg); color: var(--ed-ink); border-top: 1px solid var(--ed-line); overflow: auto; padding: 10px 14px; font-family: var(--font-code); font-size: 13px; line-height: 1.55; flex-shrink: 0; }
 .output-text { margin: 0; font: inherit; white-space: pre-wrap; word-break: break-word; }
+/* SQL results */
+.output .result { white-space: normal; margin: 4px 0 10px; }
+.output .tablewrap { overflow-x: auto; }
+.output table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.output th, .output td { border: 1px solid var(--ed-line); padding: 3px 10px; text-align: left; white-space: pre; }
+.output th { color: var(--ed-yellow); font-weight: 600; }
+.output .result > .sys { margin-top: 2px; }
 .output .err { color: var(--ed-red); }
 .output .sys { color: var(--ed-dim); font-style: italic; }
 .output .input { color: var(--ed-yellow); }

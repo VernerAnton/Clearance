@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { appendOutput, outputText, type Segment } from './output';
+import { appendOutput, appendTable, outputText, type OutputKind, type Segment } from './output';
 
-const build = (...parts: [Segment['kind'], string][]) =>
+const build = (...parts: [OutputKind, string][]) =>
   parts.reduce<Segment[]>((segs, [kind, text]) => appendOutput(segs, kind, text), []);
 
 describe('appendOutput', () => {
@@ -39,5 +39,14 @@ describe('appendOutput', () => {
 describe('outputText', () => {
   it('returns the end of long output', () => {
     expect(outputText([{ kind: 'out', text: 'abcdef' }], 3)).toBe('def');
+  });
+});
+
+describe('tables', () => {
+  const table = { columns: ['name', 'n'], rows: [['Ada', '3'], ['Bo', null]], rowCount: 2 };
+
+  it('shows tables to the tutor as text, with NULLs and the row count', () => {
+    const segs = appendOutput(appendTable(build(['sys', '▶ q.sql\n']), table), 'sys', 'Done\n');
+    expect(outputText(segs)).toBe('▶ q.sql\nname | n\nAda | 3\nBo | NULL\n(2 rows)\nDone\n');
   });
 });

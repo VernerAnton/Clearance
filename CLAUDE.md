@@ -47,6 +47,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `shared/`: code used by both the browser and the server (modes, clearance levels).
 - `src/lib/`: pure logic (tabs and their storage, settings, panel sizes). Unit tests sit next to it as `*.test.ts`.
 - `src/python/`: the Python runner. `python.worker.ts` runs Pyodide off the main thread, `runner.py` runs the learner's code and trims tracebacks, `PythonRunner.ts` is the page side (input(), time limit, Stop).
+- `src/sql/`: the SQL runner. `sql.worker.ts` runs sql.js on a fresh database per run, `SqlRunner.ts` adds the time limit and Stop.
 - `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
 - `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
 - `functions/api/`: Cloudflare Pages Functions (the backend).

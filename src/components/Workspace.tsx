@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react';
 import { LIMITS } from '../lib/layout';
 import type { Segment } from '../lib/output';
+import type { SqlTable } from '../sql/protocol';
 import type { Lang, Tab } from '../lib/tabs';
 import { CodeEditor, type EditorHelpers } from './CodeEditor';
 import { Splitter } from './Splitter';
@@ -34,10 +35,43 @@ interface Props {
 }
 
 const PHASE_TEXT: Record<RunPhase, string> = {
-  loading: 'Loading Python…',
+  loading: 'Loading…',
   running: 'Running…',
   waiting: 'Waiting for your input…',
 };
+
+/** One SQL result, with the row count under it. */
+function ResultTable({ table }: { table: SqlTable }) {
+  const { columns, rows, rowCount } = table;
+  return (
+    <div className="result">
+      <div className="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              {columns.map((c, i) => (
+                <th key={i}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, r) => (
+              <tr key={r}>
+                {row.map((v, c) => (
+                  <td key={c}>{v === null ? <span className="sys">NULL</span> : v}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="sys">
+        {rowCount} row{rowCount === 1 ? '' : 's'}
+        {rowCount > rows.length && ` (showing the first ${rows.length})`}
+      </div>
+    </div>
+  );
+}
 
 /** The box that appears in the output where input() is waiting. */
 function InlineInput({ onSubmit }: { onSubmit: (text: string) => void }) {
@@ -235,14 +269,18 @@ export function Workspace(props: Props) {
               {active.lang === 'sql' ? 'Results appear here as a table.' : 'Output from print() and input() appears here.'}
             </div>
           ) : (
-            <pre className="output-text">
-              {output.map((seg, i) => (
-                <span key={i} className={seg.kind}>
-                  {seg.text}
-                </span>
-              ))}
+            <div className="output-text">
+              {output.map((seg, i) =>
+                seg.kind === 'table' ? (
+                  <ResultTable key={i} table={seg.table} />
+                ) : (
+                  <span key={i} className={seg.kind}>
+                    {seg.text}
+                  </span>
+                ),
+              )}
               {waitingHere && <InlineInput onSubmit={onInput} />}
-            </pre>
+            </div>
           )}
         </div>
       </div>
