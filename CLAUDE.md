@@ -42,6 +42,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `npx wrangler pages dev`: the built site from `dist/` + functions, with `.dev.vars` and the `public/_headers` headers (run `npm run build` first)
 - `npm test`: unit tests (Vitest)
 - `npm run prompts`: regenerate `server/prompts.generated.ts` from `prompts/*.md` (runs automatically before test, typecheck and build)
+- `npm run eval:judge`: run the judge over `evals/judge-cases.jsonl` and print accuracy and misses (`-- --model provider/name` to try another model; needs `.dev.vars`)
 - `npm run typecheck`: TypeScript check only (browser code, then `vite.config.ts` + `scripts/`)
 
 ## Layout of the code

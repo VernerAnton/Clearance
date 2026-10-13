@@ -12,7 +12,9 @@
     "pretypecheck": "npm run prompts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "pretest": "npm run prompts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "preeval:judge": "npm run prompts",
+    "eval:judge": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/eval-judge.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

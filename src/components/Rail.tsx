@@ -116,6 +116,7 @@ export function Rail({ mode, level, resetNote, settings, onMode, onLevel, onNewM
               ['liveLinting', 'Live linting', 'Underlines syntax errors while you type.'],
               ['autocomplete', 'Autocomplete', 'Suggests names and keywords while you type.'],
               ['closeBrackets', 'Auto-close brackets', 'Typing ( [ { or a quote adds the closing one.'],
+              ['debugPanel', 'Debug panel', 'Shows what the tutor and the judge receive, and any blocked drafts.'],
             ] as const
           ).map(([key, name, plain]) => (
             <label className="check" key={key}>

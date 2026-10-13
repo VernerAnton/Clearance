@@ -10,6 +10,7 @@ import { Workspace } from './components/Workspace';
 import { useCodeRunner } from './hooks/useCodeRunner';
 import { ChatFailed, sendChat } from './lib/api';
 import type { HistoryMessage } from '../shared/api';
+import type { DebugInfo } from './components/Inspector';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
@@ -102,6 +103,7 @@ export function App() {
   };
 
   const [waiting, setWaiting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   /** The chat so far, as the tutor sees it: no welcome text, no failed messages, no errors. */
   const historyFor = (msgs: ChatMessage[]): HistoryMessage[] =>
@@ -144,14 +146,16 @@ export function App() {
         activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
         lastRun,
       });
+      setDebugInfo({ debug: res.debug, intercepted: res.intercepted });
       const where = m.hasLevels ? `${m.label}, Clearance ${sentLevel}` : m.label;
-      const reply: ChatMessage = {
-        id: ++msgSeq,
-        role: 'tutor',
-        text: res.reply,
-        history: res.reply,
-        chips: [{ text: `${where}${res.attempts > 1 ? `, ${res.attempts} attempts` : ''}` }],
-      };
+      const chips: { text: string; tone?: 'fallback' | 'mission' | 'guard' }[] = [{ text: where }];
+      if (res.fallback) {
+        chips.push({ text: "Transmission blocked: the tutor kept giving too much away, so the app is asking instead", tone: 'fallback' });
+      } else if (res.intercepted.length > 0) {
+        const n = res.intercepted.length;
+        chips.push({ text: `Spoiler intercepted: ${n} draft${n > 1 ? 's' : ''} blocked before you saw ${n > 1 ? 'them' : 'it'}`, tone: 'guard' });
+      }
+      const reply: ChatMessage = { id: ++msgSeq, role: 'tutor', text: res.reply, history: res.reply, chips };
       setMessages((ms) => [...ms, reply]);
     } catch (err) {
       const message = err instanceof ChatFailed ? err.message : 'Something went wrong. Try again.';
@@ -236,6 +240,8 @@ export function App() {
         hasLastRun={activeId in runner.lastRuns}
         messages={messages}
         waiting={waiting}
+        debugPanel={settings.debugPanel}
+        debugInfo={debugInfo}
         onSend={send}
       />
     </div>

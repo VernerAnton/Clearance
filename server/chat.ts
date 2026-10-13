@@ -1,8 +1,9 @@
-// Handles one tutor message: validate, build the request, ask the model, answer.
+// Handles one tutor message: validate it, run it through the guard pipeline, answer.
 import type { ChatError, ChatResponse } from '../shared/api.ts';
-import { buildTutorMessages } from './messages.ts';
+import { modeById } from '../shared/clearance.ts';
 import { ApiError, complete, type Env } from './openrouter.ts';
-import { CLEARANCE_RULES, TUTOR_SYSTEM } from './prompts.generated.ts';
+import { runGuarded } from './pipeline.ts';
+import { CLEARANCE_RULES, JUDGE_SYSTEM, RETRY_NOTE, TUTOR_SYSTEM } from './prompts.generated.ts';
 import { parseClearanceRules } from './rules.ts';
 import { validateChatRequest } from './validate.ts';
 
@@ -25,17 +26,21 @@ export async function handleChat(request: Request, env: Env): Promise<Response> 
     return json({ error: { kind: 'config', message: 'TUTOR_MODEL is not set. Add it to .dev.vars (see .dev.vars.example).' } }, 500);
   }
 
+  const needsJudge = modeById(req.mode).hasLevels && req.level <= 2;
+  if (needsJudge && !env.JUDGE_MODEL) {
+    return json({ error: { kind: 'config', message: 'JUDGE_MODEL is not set. Add it to .dev.vars (see .dev.vars.example).' } }, 500);
+  }
+
   try {
-    const tutorMessages = buildTutorMessages(req, TUTOR_SYSTEM, rules);
-    const reply = await complete(env, env.TUTOR_MODEL, tutorMessages);
-    return json({
-      reply,
-      attempts: 1,
-      intercepted: [],
-      fallback: false,
-      mission: null,
-      debug: { tutorMessages, judgeChecks: [] },
+    const response = await runGuarded(req, {
+      complete: (model, messages) => complete(env, model, messages),
+      tutorModel: env.TUTOR_MODEL,
+      judgeModel: env.JUDGE_MODEL ?? '',
+      prompts: { tutorSystem: TUTOR_SYSTEM, judgeSystem: JUDGE_SYSTEM, retryNote: RETRY_NOTE },
+      rules,
+      log: (message) => console.log(message),
     });
+    return json(response);
   } catch (err) {
     if (err instanceof ApiError) return json({ error: { kind: err.kind, message: err.message } }, err.status);
     console.error('chat failed', err);

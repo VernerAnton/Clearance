@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
+import { Inspector, type DebugInfo } from './Inspector';
 import { Markdown } from './Markdown';
 
 export type ChatMessage =
@@ -30,11 +31,16 @@ interface Props {
   hasLastRun: boolean;
   messages: ChatMessage[];
   waiting: boolean;
+  /** Show the debug panel button (a setting, off by default). */
+  debugPanel: boolean;
+  debugInfo: DebugInfo | null;
   onSend: (text: string) => void;
 }
 
-export function Chat({ mode, level, activeTitle, hasLastRun, messages, waiting, onSend }: Props) {
+export function Chat(props: Props) {
+  const { mode, level, activeTitle, hasLastRun, messages, waiting, debugPanel, debugInfo, onSend } = props;
   const [draft, setDraft] = useState('');
+  const [inspecting, setInspecting] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const m = modeById(mode);
 
@@ -64,6 +70,17 @@ export function Chat({ mode, level, activeTitle, hasLastRun, messages, waiting, 
           <span aria-hidden="true">{m.icon}</span> {m.label}
           <small>{m.hasLevels ? `next reply at Clearance ${level}: ${levelInfo(level).name}` : 'no clearance levels'}</small>
         </div>
+        {debugPanel && (
+          <button
+            type="button"
+            className="btn small"
+            aria-expanded={inspecting}
+            aria-controls="inspector"
+            onClick={() => setInspecting((v) => !v)}
+          >
+            What the tutor receives
+          </button>
+        )}
       </div>
 
       <div className="log" ref={logRef} aria-live="polite">
@@ -96,6 +113,8 @@ export function Chat({ mode, level, activeTitle, hasLastRun, messages, waiting, 
         })}
         {waiting && <div className="msg bot thinking">Drafting a reply…</div>}
       </div>
+
+      {debugPanel && inspecting && <Inspector info={debugInfo} />}
 
       <form className="composer" onSubmit={submit}>
         <div className="row">

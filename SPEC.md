@@ -101,14 +101,14 @@ Tick items as they're done. Stop after each phase for review.
 
 ### Phase 5: Guard pipeline
 Runs on the server for every reply.
-- [ ] **Code check** (free, always): at Clearance 1-2, any fenced code block fails. At Clearance 3, any fence not tagged `pseudo` fails. Exception: the mission block in Challenge mode (Phase 6).
-- [ ] **Judge** (Clearance 1-2 only): call `JUDGE_MODEL` with `prompts/judge-system.md`, sending the level, the learner's message, the open tab's code and the draft. Expect JSON `{ "leaks": boolean, "why": string }`. Treat unparseable judge output as a pass and log it.
-- [ ] **Retry**: on a failure, append a system note ("Your previous draft was rejected. {why} Rewrite it strictly at Clearance N: {rule}") and ask again. At most 2 retries.
-- [ ] **Fallback**: if all 3 attempts fail, reply with a fixed app message: "Transmission blocked. What did you expect to happen, and what happened instead?"
-- [ ] Response includes intercepted drafts. The UI shows "Spoiler intercepted" with the count; the draft text is only visible in a debug panel (toggle in settings, off by default).
-- [ ] Debug panel ("What the tutor receives") shows the last tutor and judge requests, as in the mockup.
-- [ ] Unit tests for the code check and judge-response parsing.
-- [ ] Script `npm run eval:judge` runs the judge over `evals/judge-cases.jsonl` and prints accuracy and every miss.
+- [x] **Code check** (free, always): at Clearance 1-2, any fenced code block fails. At Clearance 3, any fence not tagged `pseudo` fails. Exception: the mission block in Challenge mode (Phase 6).
+- [x] **Judge** (Clearance 1-2 only): call `JUDGE_MODEL` with `prompts/judge-system.md`, sending the level, the learner's message, the open tab's code and the draft. Expect JSON `{ "leaks": boolean, "why": string }`. Treat unparseable judge output as a pass and log it.
+- [x] **Retry**: on a failure, append a system note ("Your previous draft was rejected. {why} Rewrite it strictly at Clearance N: {rule}") and ask again. At most 2 retries.
+- [x] **Fallback**: if all 3 attempts fail, reply with a fixed app message: "Transmission blocked. What did you expect to happen, and what happened instead?"
+- [x] Response includes intercepted drafts. The UI shows "Spoiler intercepted" with the count; the draft text is only visible in a debug panel (toggle in settings, off by default).
+- [x] Debug panel ("What the tutor receives") shows the last tutor and judge requests, as in the mockup.
+- [x] Unit tests for the code check and judge-response parsing.
+- [x] Script `npm run eval:judge` runs the judge over `evals/judge-cases.jsonl` and prints accuracy and every miss.
 
 ### Phase 6: Missions
 - [ ] In Challenge mode, the tutor writes a mission as one fenced block tagged `python` or `sql`, whose first line is `# Mission: <title>` (or `-- Mission: <title>` for SQL).
@@ -120,7 +120,7 @@ Runs on the server for every reply.
 ### Phase 7: Theme and polish
 - [ ] Clearance vocabulary everywhere (section 2), neon accent on the ladder, both themes checked.
 - [ ] Keyboard focus visible everywhere; `prefers-reduced-motion` respected.
-- [ ] Settings: live linting, debug panel. (Live linting, autocomplete, auto-close brackets and theme exist since Phase 1.)
+- [ ] Settings: live linting, debug panel. (Both exist: live linting, autocomplete, auto-close brackets and theme since Phase 1, the debug panel since Phase 5.)
 
 ### Phase 8: Deploy
 - [ ] GitHub repo connected to Cloudflare Pages; push deploys automatically.

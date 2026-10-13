@@ -13,12 +13,12 @@ export interface Env {
 
 /** An error with a message that's fine to show the learner. */
 export class ApiError extends Error {
-  constructor(
-    readonly kind: ChatError['error']['kind'],
-    message: string,
-    readonly status = 502,
-  ) {
+  readonly kind: ChatError['error']['kind'];
+  readonly status: number;
+  constructor(kind: ChatError['error']['kind'], message: string, status = 502) {
     super(message);
+    this.kind = kind;
+    this.status = status;
   }
 }
 
@@ -55,9 +55,10 @@ export async function complete(env: Env, model: string, messages: ModelMessage[]
     throw new ApiError('upstream', timedOut ? 'The model took too long to answer. Try again.' : 'Could not reach OpenRouter. Check the internet connection.');
   }
 
-  let data: { choices?: { message?: { content?: unknown } }[]; error?: { code?: number; message?: string } };
+  type Completion = { choices?: { message?: { content?: unknown } }[]; error?: { code?: number; message?: string } };
+  let data: Completion;
   try {
-    data = await res.json();
+    data = (await res.json()) as Completion;
   } catch {
     throw errorFor(res.status, 'the response was not JSON');
   }

@@ -1,4 +1,4 @@
-// User settings, saved in localStorage. Phase 7 adds the debug panel toggle here.
+// User settings, saved in localStorage.
 
 export type Theme = 'system' | 'light' | 'dark';
 
@@ -11,6 +11,8 @@ export interface Settings {
   closeBrackets: boolean;
   /** Follow the computer's setting, or force light or dark. */
   theme: Theme;
+  /** Show the "What the tutor receives" panel, with blocked drafts. */
+  debugPanel: boolean;
 }
 
 const STORAGE_KEY = 'clearance.settings.v1';
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autocomplete: false,
   closeBrackets: false,
   theme: 'system',
+  debugPanel: false,
 };
 
 /** Read saved settings, keeping only values that make sense and defaulting the rest. */
@@ -40,6 +43,7 @@ export function parseSettings(raw: string | null): Settings {
     autocomplete: bool('autocomplete'),
     closeBrackets: bool('closeBrackets'),
     theme,
+    debugPanel: bool('debugPanel'),
   };
 }
 
