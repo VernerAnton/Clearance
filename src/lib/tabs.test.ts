@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultTabs, nextScratchTitle, parseSavedTabs, type Tab } from './tabs';
+import { defaultTabs, nextScratchTitle, parseSavedTabs, uniqueTitle, type Tab } from './tabs';
 
 const tab = (over: Partial<Tab> = {}): Tab => ({
   id: 'a',
@@ -43,5 +43,13 @@ describe('parseSavedTabs', () => {
   it('drops malformed tabs and fixes a missing active tab', () => {
     const raw = JSON.stringify({ tabs: [{ id: 'x', lang: 'ruby' }, tab({ id: 'ok' })], activeId: 'gone' });
     expect(parseSavedTabs(raw)).toEqual({ tabs: [tab({ id: 'ok' })], activeId: 'ok' });
+  });
+});
+
+describe('uniqueTitle', () => {
+  it('numbers duplicate mission titles', () => {
+    expect(uniqueTitle([tab()], 'Evens')).toBe('Evens');
+    expect(uniqueTitle([tab({ title: 'Evens' })], 'Evens')).toBe('Evens 2');
+    expect(uniqueTitle([tab({ title: 'Evens' }), tab({ title: 'Evens 2' })], 'Evens')).toBe('Evens 3');
   });
 });

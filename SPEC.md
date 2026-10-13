@@ -111,11 +111,11 @@ Runs on the server for every reply.
 - [x] Script `npm run eval:judge` runs the judge over `evals/judge-cases.jsonl` and prints accuracy and every miss.
 
 ### Phase 6: Missions
-- [ ] In Challenge mode, the tutor writes a mission as one fenced block tagged `python` or `sql`, whose first line is `# Mission: <title>` (or `-- Mission: <title>` for SQL).
-- [ ] The server extracts it and returns `mission: { title, lang, code }`. The code check skips that block. The rest of the reply is still checked normally.
-- [ ] The client opens it in a **new** tab marked as a mission (duplicate titles get a number). Model output never writes into an existing tab.
-- [ ] The chat shows "Mission opened in a new tab" instead of the code.
-- [ ] No hidden tests and no Check button. The learner runs the code and judges the result.
+- [x] In Challenge mode, the tutor writes a mission as one fenced block tagged `python` or `sql`, whose first line is `# Mission: <title>` (or `-- Mission: <title>` for SQL).
+- [x] The server extracts it and returns `mission: { title, lang, code }`. The code check skips that block. The rest of the reply is still checked normally.
+- [x] The client opens it in a **new** tab marked as a mission (duplicate titles get a number). Model output never writes into an existing tab.
+- [x] The chat shows "Mission opened in a new tab" instead of the code.
+- [x] No hidden tests and no Check button. The learner runs the code and judges the result.
 
 ### Phase 7: Theme and polish
 - [ ] Clearance vocabulary everywhere (section 2), neon accent on the ladder, both themes checked.

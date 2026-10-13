@@ -79,6 +79,14 @@ export function nextScratchTitle(tabs: Tab[], lang: Lang): string {
   return `${base}${n}${ext}`;
 }
 
+/** A tab title not used yet: "Evens", then "Evens 2", "Evens 3", ... */
+export function uniqueTitle(tabs: Tab[], title: string): string {
+  if (!tabs.some((t) => t.title === title)) return title;
+  let n = 2;
+  while (tabs.some((t) => t.title === `${title} ${n}`)) n++;
+  return `${title} ${n}`;
+}
+
 function isTab(x: unknown): x is Tab {
   if (!x || typeof x !== 'object') return false;
   const t = x as Record<string, unknown>;

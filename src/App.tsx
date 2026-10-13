@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { modeById, type Level, type ModeId } from '../shared/clearance';
 import { DEFAULT_LAYOUT, LIMITS, loadLayout, saveLayout, type Layout } from './lib/layout';
 import { loadSettings, saveSettings, type Settings } from './lib/settings';
-import { loadTabs, newId, nextScratchTitle, saveTabs, type Lang, type TabsState } from './lib/tabs';
+import { loadTabs, newId, nextScratchTitle, saveTabs, uniqueTitle, type Lang, type Tab, type TabsState } from './lib/tabs';
 import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
 import { Splitter } from './components/Splitter';
@@ -155,7 +155,24 @@ export function App() {
         const n = res.intercepted.length;
         chips.push({ text: `Spoiler intercepted: ${n} draft${n > 1 ? 's' : ''} blocked before you saw ${n > 1 ? 'them' : 'it'}`, tone: 'guard' });
       }
-      const reply: ChatMessage = { id: ++msgSeq, role: 'tutor', text: res.reply, history: res.reply, chips };
+      let remembered = res.reply;
+      if (res.mission) {
+        // The only way model output reaches the editor: a mission, always in a brand-new tab.
+        const { mission } = res;
+        setTabsState((s) => {
+          const tab: Tab = {
+            id: newId(),
+            title: uniqueTitle(s.tabs, mission.title),
+            lang: mission.lang,
+            code: mission.code,
+            fromMission: true,
+          };
+          return { tabs: [...s.tabs, tab], activeId: tab.id };
+        });
+        chips.push({ text: `Mission opened in a new tab: ${mission.title}`, tone: 'mission' });
+        remembered = `${res.reply}\n\n[Mission "${mission.title}" opened in a new tab]`.trim();
+      }
+      const reply: ChatMessage = { id: ++msgSeq, role: 'tutor', text: res.reply, history: remembered, chips };
       setMessages((ms) => [...ms, reply]);
     } catch (err) {
       const message = err instanceof ChatFailed ? err.message : 'Something went wrong. Try again.';

@@ -89,4 +89,28 @@ describe('runGuarded', () => {
       expect(calls.every((c) => c.model === 'tutor')).toBe(true);
     }
   });
+
+  it('takes a mission out in Challenge mode and checks only the rest', async () => {
+    const mission = '```python\n# Mission: Evens\n# Print the even numbers.\n\n# Your code below\n```';
+    const { deps, calls } = fakeDeps([`Mission ready.\n${mission}`]);
+    const res = await runGuarded(request({ mode: 'challenge' }), deps);
+    expect(res).toMatchObject({ reply: 'Mission ready.', attempts: 1, fallback: false });
+    expect(res.mission).toMatchObject({ title: 'Evens', lang: 'python' });
+    // The judge sees the reply without the mission.
+    expect(calls[1].messages[1].content.endsWith('Draft reply:\nMission ready.')).toBe(true);
+  });
+
+  it('still blocks other code next to a mission', async () => {
+    const leak = 'Mission:\n```python\n# Mission: Evens\n```\nHint:\n```python\nprint(2)\n```';
+    const { deps } = fakeDeps([leak, 'Try it.']);
+    const res = await runGuarded(request({ mode: 'challenge' }), deps);
+    expect(res).toMatchObject({ reply: 'Try it.', attempts: 2, mission: null });
+    expect(res.intercepted[0].step).toBe('code-check');
+  });
+
+  it('treats a mission block as ordinary code outside Challenge mode', async () => {
+    const { deps } = fakeDeps(['```python\n# Mission: Evens\n```', 'Which line?']);
+    const res = await runGuarded(request({ mode: 'debug' }), deps);
+    expect(res).toMatchObject({ reply: 'Which line?', mission: null, attempts: 2 });
+  });
 });
