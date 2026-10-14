@@ -20,14 +20,14 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - **Editor:** CodeMirror 6 with `@codemirror/lang-python` and `@codemirror/lang-sql`.
 - **Python:** Pyodide in a Web Worker, self-hosted from this site (not a CDN).
 - **SQL:** sql.js (SQLite in WebAssembly), self-hosted.
-- **Backend:** Cloudflare Pages Functions (`functions/api/*`). Model calls go through OpenRouter's OpenAI-compatible chat API.
-- **Hosting:** local first (`wrangler pages dev`), then Cloudflare Pages + Cloudflare Access.
+- **Backend:** a Cloudflare Worker (`server/worker.ts`) that answers `/api/*` and serves the built site as static assets. Model calls go through OpenRouter's OpenAI-compatible chat API. (The spec first said Pages Functions; the project was created as a Worker, so the app runs as one.)
+- **Hosting:** local first (`npm start`, i.e. `wrangler dev`), then the Cloudflare Worker `clearance`, deployed by Workers Builds on every push to the working branch. Cloudflare Access is postponed. Don't touch other projects in the Cloudflare account.
 - **Tests:** Vitest for pure logic (guard, message building, mission parsing, judge parsing).
 
 ## Rules that must not be broken
 
 1. **The level lives in app state.** The UI sets it, the server validates it, and it resets to 1 after every sent message. Nothing the model says can change it.
-2. **The API key never reaches the browser.** All model calls happen in Pages Functions. Secrets come from `.dev.vars` locally and Cloudflare secrets in production.
+2. **The API key never reaches the browser.** All model calls happen in the Worker. Secrets come from `.dev.vars` locally and Cloudflare secrets in production.
 3. **The tutor never edits existing tabs.** The only way model output enters the editor is a new tab created from a mission in Challenge mode.
 4. **Every tutor reply passes the guard pipeline** (code check, then judge at levels 1-2, retries, fallback) before the user sees it. See SPEC.md, Phase 5.
 5. **Self-host Pyodide and sql.js.** The page is cross-origin isolated (COOP/COEP headers) so `input()` works, and those headers block most CDN files.
@@ -36,10 +36,10 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 ## Commands (fill in as they're created)
 
 - `npm install`: install dependencies (once, and after pulling changes to `package.json`)
-- `npm start`: build, then serve the whole app (page + tutor API) at http://localhost:8788. Needs `.dev.vars`.
-- `npm run dev`: frontend only, at http://localhost:5173. `/api` calls are forwarded to port 8788, so run `npx wrangler pages dev` alongside it for the tutor.
+- `npm start`: build, then run the Worker locally (page + tutor API) at http://localhost:8788. Needs `.dev.vars`.
+- `npm run dev`: frontend only, at http://localhost:5173. `/api` calls are forwarded to port 8788, so run `npm start` alongside it for the tutor.
 - `npm run build`: typecheck, then build the site into `dist/`
-- `npx wrangler pages dev`: the built site from `dist/` + functions, with `.dev.vars` and the `public/_headers` headers (run `npm run build` first)
+- `npx wrangler deploy --dry-run`: check that a deploy would work, without uploading (it builds first, see `[build]` in `wrangler.toml`)
 - `npm test`: unit tests (Vitest)
 - `npm run prompts`: regenerate `server/prompts.generated.ts` from `prompts/*.md` (runs automatically before test, typecheck and build)
 - `npm run eval:judge`: run the judge over `evals/judge-cases.jsonl` and print accuracy and misses (`-- --model provider/name` to try another model; needs `.dev.vars`)
@@ -53,8 +53,8 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `src/sql/`: the SQL runner. `sql.worker.ts` runs sql.js on a fresh database per run, `SqlRunner.ts` adds the time limit and Stop.
 - `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
 - `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
-- `functions/api/`: Cloudflare Pages Functions. Thin: they call into `server/`.
+- `server/worker.ts`: the Worker entry: `/api/chat`, `/api/health`, and the static site for everything else.
 - `server/`: the backend logic (validation, message building, OpenRouter calls, guard, missions), with unit tests. `prompts.generated.ts` is generated, not committed.
 - `shared/api.ts`: the /api/chat request and response types, used by both sides.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
-- `public/_headers`: COOP/COEP headers for Cloudflare. `vite.config.ts` sets the same headers for dev and preview.
+- `public/_headers`: COOP/COEP headers for Cloudflare (Workers static assets read this file). `vite.config.ts` sets the same headers for dev and preview.

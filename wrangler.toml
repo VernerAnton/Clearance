@@ -1,5 +1,29 @@
-# Cloudflare Pages config. `npx wrangler pages dev` serves the built site from
-# dist/ together with the API in functions/, reading secrets from .dev.vars.
+# Cloudflare Worker config. The Worker (server/worker.ts) answers /api/*;
+# everything else is the built site in dist/, served as static assets with
+# the headers in public/_headers. Secrets come from .dev.vars locally and from
+# the Worker's "Variables and Secrets" settings on Cloudflare.
 name = "clearance"
-pages_build_output_dir = "dist"
+main = "server/worker.ts"
 compatibility_date = "2026-09-01"
+
+# Serve the app at https://clearance.<your-subdomain>.workers.dev
+workers_dev = true
+# No extra public preview addresses for each upload.
+preview_urls = false
+# Keep variables set in the Cloudflare dashboard (like TUTOR_MODEL) when deploying.
+keep_vars = true
+
+# `wrangler deploy` and `wrangler dev` build the site first, so a deploy never
+# uploads a stale or missing dist/.
+[build]
+command = "npm run build"
+watch_dir = ["src", "server", "shared", "prompts", "public"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# Only /api goes through the Worker code; files are served directly.
+run_worker_first = ["/api/*"]
+
+[dev]
+port = 8788

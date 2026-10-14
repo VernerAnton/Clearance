@@ -33,7 +33,7 @@ You need [Node.js](https://nodejs.org) 22.18 or newer, and an [OpenRouter](https
    npm start
    ```
 
-   Then open http://localhost:8788. This builds the site and serves it together with the tutor's server.
+   Then open http://localhost:8788. This builds the site and runs it together with the tutor's server, the same way it runs on Cloudflare.
 
 To compare judge models, run `npm run eval:judge` (or `npm run eval:judge -- --model provider/model-name`). It checks the judge against `evals/judge-cases.jsonl` and lists every case it got wrong.
 

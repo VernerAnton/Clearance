@@ -64,7 +64,7 @@ History is the chat since the last "New mission", without the context headers of
 Tick items as they're done. Stop after each phase for review.
 
 ### Phase 1: Layout and editor
-- [x] Vite + React + TypeScript project, with Pages Functions folder and wrangler config.
+- [x] Vite + React + TypeScript project, with Pages Functions folder and wrangler config. (Now a Cloudflare Worker: `server/worker.ts`.)
 - [x] Three-panel layout: rail, workspace, chat. Desktop first; small screens must not break, but the final mobile layout is still undecided (see Open questions).
 - [x] Rail: mode selector and clearance ladder 1-5 with themed names and plain descriptions. Ladder disabled in Explain mode.
 - [x] Workspace: tabs (Python or SQL badge, mission marker, close button, "+ Python", "+ SQL"), CodeMirror 6 editor with syntax highlighting for both languages, Tab inserts 4 spaces, Ctrl/Cmd+Enter runs.
@@ -91,7 +91,7 @@ Tick items as they're done. Stop after each phase for review.
 - [x] Last run's output stored per tab as plain text.
 
 ### Phase 4: Tutor backend
-- [x] `POST /api/chat` in Pages Functions. Reads `OPENROUTER_API_KEY`, `TUTOR_MODEL`, `JUDGE_MODEL` from env.
+- [x] `POST /api/chat` in Pages Functions (now the Worker). Reads `OPENROUTER_API_KEY`, `TUTOR_MODEL`, `JUDGE_MODEL` from env.
 - [x] Builds the request exactly as in section 4 with `prompts/tutor-system.md` as the system prompt.
 - [x] Validates input; rejects unknown modes and levels outside 1-5.
 - [x] Client: level resets to 1 after each send, with a short "Clearance reset" note. Message shows a "📎 tab + last output" chip so the learner knows what was sent.
@@ -123,7 +123,7 @@ Runs on the server for every reply.
 - [ ] Settings: live linting, debug panel. (Both exist: live linting, autocomplete, auto-close brackets and theme since Phase 1, the debug panel since Phase 5.)
 
 ### Phase 8: Deploy
-- [ ] GitHub repo connected to Cloudflare Pages; push deploys automatically.
+- [ ] GitHub repo connected to Cloudflare (as the Worker `clearance`, via Workers Builds); push deploys automatically.
 - [ ] Secrets set in Cloudflare, not committed.
 - [ ] Cloudflare Access in front of the whole site (email one-time code).
 - [ ] Spending limit set on OpenRouter.
