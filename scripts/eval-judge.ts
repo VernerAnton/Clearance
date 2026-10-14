@@ -1,11 +1,12 @@
 // npm run eval:judge [-- --model provider/model-name]
 // Runs the judge over evals/judge-cases.jsonl and prints accuracy and every miss.
-// Uses OPENROUTER_API_KEY and JUDGE_MODEL from .dev.vars; --model tries another model.
+// Uses JUDGE_MODEL and the API keys from .dev.vars; --model tries another judge.
+// "typesafe:jev-latest" tries TypeSafe's Jev (needs TYPESAFE_API_KEY).
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildJudgeMessages, parseJudgeReply } from '../server/judge.ts';
-import { complete, type Env } from '../server/openrouter.ts';
-import { JUDGE_SYSTEM } from '../server/prompts.generated.ts';
+import type { JevEnv } from '../server/jev.ts';
+import { makeJudge } from '../server/judges.ts';
+import type { Env } from '../server/openrouter.ts';
 
 interface Case {
   id: string;
@@ -19,7 +20,7 @@ interface Case {
 
 const root = join(import.meta.dirname, '..');
 
-function readDevVars(): Env {
+function readDevVars(): Env & JevEnv {
   const path = join(root, '.dev.vars');
   if (!existsSync(path)) return {};
   const env: Record<string, string> = {};
@@ -30,7 +31,7 @@ function readDevVars(): Env {
   return env;
 }
 
-const env: Env = { ...readDevVars(), ...process.env };
+const env: Env & JevEnv = { ...readDevVars(), ...process.env };
 const flag = process.argv.indexOf('--model');
 const model = flag > -1 ? process.argv[flag + 1] : env.JUDGE_MODEL;
 if (!model) {
@@ -43,21 +44,21 @@ const cases: Case[] = readFileSync(join(root, 'evals', 'judge-cases.jsonl'), 'ut
   .filter((line) => line.trim())
   .map((line) => JSON.parse(line));
 
+const judge = makeJudge(env, model);
 console.log(`Judge model: ${model}\nCases: ${cases.length}\n`);
 
 const misses: { c: Case; got: string }[] = [];
 let unreadable = 0;
 for (const c of cases) {
   const lang = /^\s*(select|create|insert|with)\b/i.test(c.code) ? 'sql' : 'python';
-  const messages = buildJudgeMessages(JUDGE_SYSTEM, { level: c.level, learnerMessage: c.learner_message, code: c.code, lang, draft: c.draft });
   let raw: string;
+  let verdict;
   try {
-    raw = await complete(env, model, messages, 300);
+    ({ raw, verdict } = await judge({ level: c.level, learnerMessage: c.learner_message, code: c.code, lang, draft: c.draft }));
   } catch (err) {
     console.error(`Stopped: ${err instanceof Error ? err.message : err}`);
     process.exit(1);
   }
-  const verdict = parseJudgeReply(raw);
   if (!verdict.parsed) unreadable++;
   const right = verdict.leaks === c.expected_leaks;
   console.log(`${right ? '✓' : '✗'} ${c.id}${verdict.parsed ? '' : ' (unreadable answer)'}`);

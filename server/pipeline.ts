@@ -3,7 +3,7 @@
 import { modeById } from '../shared/clearance.ts';
 import type { ChatRequest, ChatResponse, Intercepted, JudgeCheck } from '../shared/api.ts';
 import { codeCheck } from './guard.ts';
-import { buildJudgeMessages, parseJudgeReply } from './judge.ts';
+import type { Judge } from './judge.ts';
 import { extractMission } from './mission.ts';
 import { buildTutorMessages, ruleFor, type ModelMessage } from './messages.ts';
 import type { ClearanceRules } from './rules.ts';
@@ -14,11 +14,12 @@ export const MAX_RETRIES = 2;
 export const FALLBACK_REPLY = 'Transmission blocked. What did you expect to happen, and what happened instead?';
 
 export interface PipelineDeps {
-  /** Ask a model; returns its reply text. */
+  /** Ask the tutor model; returns its reply text. */
   complete: (model: string, messages: ModelMessage[]) => Promise<string>;
   tutorModel: string;
-  judgeModel: string;
-  prompts: { tutorSystem: string; judgeSystem: string; retryNote: string };
+  /** Checks a draft at Clearance 1-2 (a chat model or Jev, see judges.ts). */
+  judge: Judge;
+  prompts: { tutorSystem: string; retryNote: string };
   rules: ClearanceRules;
   log?: (message: string) => void;
 }
@@ -43,15 +44,13 @@ export async function runGuarded(req: ChatRequest, deps: PipelineDeps): Promise<
     let why = codeCheck(shown, req.level, hasLevels);
 
     if (!why && useJudge) {
-      const judgeMessages = buildJudgeMessages(deps.prompts.judgeSystem, {
+      const { messages: judgeMessages, raw, verdict } = await deps.judge({
         level: req.level,
         learnerMessage: req.message,
         code: req.activeTab.code,
         lang: req.activeTab.lang,
         draft: shown,
       });
-      const raw = await deps.complete(deps.judgeModel, judgeMessages);
-      const verdict = parseJudgeReply(raw);
       if (!verdict.parsed) deps.log?.(`Judge answer unreadable, draft let through: ${raw.slice(0, 300)}`);
       judgeChecks.push({ attempt, messages: judgeMessages, raw, verdict });
       if (verdict.leaks) {

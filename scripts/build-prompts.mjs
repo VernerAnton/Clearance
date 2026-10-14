@@ -13,6 +13,7 @@ const prompts = {
   JUDGE_SYSTEM: read('judge-system.md'),
   CLEARANCE_RULES: read('clearance-rules.md'),
   RETRY_NOTE: read('retry-note.md').trim(),
+  JEV_QUESTIONS: read('jev-questions.md'),
 };
 
 const body = Object.entries(prompts)

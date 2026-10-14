@@ -10,7 +10,7 @@ A coding tutor that helps you learn by doing. You choose how much help it gives 
 | `SPEC.md` | What to build, in phases, with a checklist for each. |
 | `prompts/tutor-system.md` | The tutor's system prompt. |
 | `prompts/judge-system.md` | The judge's system prompt (checks drafts for leaked answers). |
-| `prompts/clearance-rules.md`, `prompts/retry-note.md` | The one-line rule per clearance level, and the note sent to the tutor when a draft is blocked. |
+| `prompts/clearance-rules.md`, `prompts/retry-note.md`, `prompts/jev-questions.md` | The one-line rule per clearance level, the note sent to the tutor when a draft is blocked, and the questions for the Jev judge. |
 | `evals/judge-cases.jsonl` | Labeled examples for testing the judge. Add your own real failures here. |
 | `reference/mockup.html` | The clickable mockup. Open it in a browser to see the intended layout and behavior. |
 | `.dev.vars.example` | The secrets the backend needs. Copy to `.dev.vars` and fill in. |
@@ -36,6 +36,8 @@ You need [Node.js](https://nodejs.org) 22.18 or newer, and an [OpenRouter](https
    Then open http://localhost:8788. This builds the site and runs it together with the tutor's server, the same way it runs on Cloudflare.
 
 To compare judge models, run `npm run eval:judge` (or `npm run eval:judge -- --model provider/model-name`). It checks the judge against `evals/judge-cases.jsonl` and lists every case it got wrong.
+
+The judge can also be TypeSafe's Jev, a model that answers yes/no questions with probabilities instead of writing text. Set `JUDGE_MODEL=typesafe:jev-latest` and add `TYPESAFE_API_KEY` (from console.typesafe.ai). Its questions are in `prompts/jev-questions.md`; a draft is blocked when any of them is 50% likely or more. Compare it with `npm run eval:judge -- --model typesafe:jev-latest`.
 
 ## Building it with Claude Code
 

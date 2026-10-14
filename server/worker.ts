@@ -1,8 +1,9 @@
 // The Cloudflare Worker: answers /api/* and serves the built site (dist/) for everything else.
 import { handleChat } from './chat.ts';
+import type { JevEnv } from './jev.ts';
 import type { Env } from './openrouter.ts';
 
-interface WorkerEnv extends Env {
+interface WorkerEnv extends Env, JevEnv {
   /** The built site, uploaded with the Worker (see [assets] in wrangler.toml). */
   ASSETS: { fetch: (request: Request) => Promise<Response> };
 }

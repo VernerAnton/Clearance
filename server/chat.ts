@@ -1,9 +1,11 @@
 // Handles one tutor message: validate it, run it through the guard pipeline, answer.
 import type { ChatError, ChatResponse } from '../shared/api.ts';
 import { modeById } from '../shared/clearance.ts';
+import type { JevEnv } from './jev.ts';
+import { makeJudge } from './judges.ts';
 import { ApiError, complete, type Env } from './openrouter.ts';
 import { runGuarded } from './pipeline.ts';
-import { CLEARANCE_RULES, JUDGE_SYSTEM, RETRY_NOTE, TUTOR_SYSTEM } from './prompts.generated.ts';
+import { CLEARANCE_RULES, RETRY_NOTE, TUTOR_SYSTEM } from './prompts.generated.ts';
 import { parseClearanceRules } from './rules.ts';
 import { validateChatRequest } from './validate.ts';
 
@@ -11,7 +13,7 @@ const rules = parseClearanceRules(CLEARANCE_RULES);
 
 const json = (body: ChatResponse | ChatError, status = 200) => Response.json(body, { status });
 
-export async function handleChat(request: Request, env: Env): Promise<Response> {
+export async function handleChat(request: Request, env: Env & JevEnv): Promise<Response> {
   let body: unknown;
   try {
     body = await request.json();
@@ -35,8 +37,8 @@ export async function handleChat(request: Request, env: Env): Promise<Response> 
     const response = await runGuarded(req, {
       complete: (model, messages) => complete(env, model, messages),
       tutorModel: env.TUTOR_MODEL,
-      judgeModel: env.JUDGE_MODEL ?? '',
-      prompts: { tutorSystem: TUTOR_SYSTEM, judgeSystem: JUDGE_SYSTEM, retryNote: RETRY_NOTE },
+      judge: makeJudge(env, env.JUDGE_MODEL ?? ''),
+      prompts: { tutorSystem: TUTOR_SYSTEM, retryNote: RETRY_NOTE },
       rules,
       log: (message) => console.log(message),
     });

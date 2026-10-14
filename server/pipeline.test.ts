@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChatRequest } from '../shared/api.ts';
 import type { ModelMessage } from './messages.ts';
 import { FALLBACK_REPLY, runGuarded, type PipelineDeps } from './pipeline.ts';
+import { chatJudge } from './judge.ts';
 import { CLEARANCE_RULES, RETRY_NOTE } from './prompts.generated.ts';
 import { parseClearanceRules } from './rules.ts';
 
@@ -18,18 +19,19 @@ const request = (over: Partial<ChatRequest> = {}): ChatRequest => ({
 /** A fake model: the tutor gives the drafts in order, the judge flags drafts containing "LEAK". */
 function fakeDeps(drafts: string[], judgeRaw?: string) {
   const calls: { model: string; messages: ModelMessage[] }[] = [];
+  const complete: PipelineDeps['complete'] = async (model, messages) => {
+    calls.push({ model, messages });
+    if (model === 'judge') {
+      const draft = messages[1].content.split('Draft reply:\n')[1];
+      return judgeRaw ?? JSON.stringify({ leaks: draft.includes('LEAK'), why: 'Gives the fix.' });
+    }
+    return drafts.shift() ?? 'out of drafts';
+  };
   const deps: PipelineDeps = {
-    complete: async (model, messages) => {
-      calls.push({ model, messages });
-      if (model === 'judge') {
-        const draft = messages[1].content.split('Draft reply:\n')[1];
-        return judgeRaw ?? JSON.stringify({ leaks: draft.includes('LEAK'), why: 'Gives the fix.' });
-      }
-      return drafts.shift() ?? 'out of drafts';
-    },
+    complete,
     tutorModel: 'tutor',
-    judgeModel: 'judge',
-    prompts: { tutorSystem: 'TUTOR', judgeSystem: 'JUDGE', retryNote: RETRY_NOTE },
+    judge: chatJudge(complete, 'judge', 'JUDGE'),
+    prompts: { tutorSystem: 'TUTOR', retryNote: RETRY_NOTE },
     rules: parseClearanceRules(CLEARANCE_RULES),
   };
   return { deps, calls };

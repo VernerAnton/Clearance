@@ -42,7 +42,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `npx wrangler deploy --dry-run`: check that a deploy would work, without uploading (it builds first, see `[build]` in `wrangler.toml`)
 - `npm test`: unit tests (Vitest)
 - `npm run prompts`: regenerate `server/prompts.generated.ts` from `prompts/*.md` (runs automatically before test, typecheck and build)
-- `npm run eval:judge`: run the judge over `evals/judge-cases.jsonl` and print accuracy and misses (`-- --model provider/name` to try another model; needs `.dev.vars`)
+- `npm run eval:judge`: run the judge over `evals/judge-cases.jsonl` and print accuracy and misses (`-- --model provider/name` to try another model, `-- --model typesafe:jev-latest` for Jev; needs `.dev.vars`)
 - `npm run typecheck`: TypeScript check only (browser code, then `vite.config.ts` + `scripts/`)
 
 ## Layout of the code
@@ -54,7 +54,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
 - `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
 - `server/worker.ts`: the Worker entry: `/api/chat`, `/api/health`, and the static site for everything else.
-- `server/`: the backend logic (validation, message building, OpenRouter calls, guard, missions), with unit tests. `prompts.generated.ts` is generated, not committed.
+- `server/`: the backend logic (validation, message building, OpenRouter calls, guard, missions), with unit tests. The judge is pluggable: `judges.ts` picks a chat-model judge (`judge.ts`) or TypeSafe's Jev (`jev.ts`, questions in `prompts/jev-questions.md`) from `JUDGE_MODEL`. `prompts.generated.ts` is generated, not committed.
 - `shared/api.ts`: the /api/chat request and response types, used by both sides.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
 - `public/_headers`: COOP/COEP headers for Cloudflare (Workers static assets read this file). `vite.config.ts` sets the same headers for dev and preview.

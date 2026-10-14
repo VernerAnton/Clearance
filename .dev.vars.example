@@ -2,6 +2,10 @@
 OPENROUTER_API_KEY=
 # OpenRouter model IDs, e.g. provider/model-name
 TUTOR_MODEL=
+# The judge: an OpenRouter model ID (e.g. z-ai/glm-5.3-flash),
+# or typesafe:jev-latest to use TypeSafe's Jev (then TYPESAFE_API_KEY is needed).
 JUDGE_MODEL=
-# Optional, only for testing against a fake server. Leave unset to use OpenRouter.
+TYPESAFE_API_KEY=
+# Optional, only for testing against a fake server. Leave unset to use the real services.
 # OPENROUTER_BASE_URL=
+# TYPESAFE_BASE_URL=

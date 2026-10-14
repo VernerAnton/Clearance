@@ -57,3 +57,26 @@ export function parseJudgeReply(raw: string): Verdict {
   if (flag === null) return unreadable;
   return { leaks: flag, why: typeof why === 'string' && why.trim() ? why.trim() : flag ? 'The judge found a leak.' : '', parsed: true };
 }
+
+/** What one judge check produced: what was sent, the raw answer, and how it was read. */
+export interface JudgeResult {
+  messages: { role: string; content: string }[];
+  raw: string;
+  verdict: Verdict;
+}
+
+/** Any judge: a chat model (below) or Jev (jev.ts). */
+export type Judge = (input: JudgeInput) => Promise<JudgeResult>;
+
+/** A judge that asks a chat model with prompts/judge-system.md and reads its JSON answer. */
+export function chatJudge(
+  complete: (model: string, messages: ModelMessage[]) => Promise<string>,
+  model: string,
+  systemPrompt: string,
+): Judge {
+  return async (input) => {
+    const messages = buildJudgeMessages(systemPrompt, input);
+    const raw = await complete(model, messages);
+    return { messages, raw, verdict: parseJudgeReply(raw) };
+  };
+}
