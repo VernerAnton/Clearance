@@ -26,7 +26,7 @@ const TIMEOUT_MS = 60_000;
 
 function errorFor(status: number, detail: string): ApiError {
   if (status === 401 || status === 403) {
-    return new ApiError('auth', 'OpenRouter rejected the API key. Check OPENROUTER_API_KEY in .dev.vars (or the Cloudflare secrets).', 500);
+    return new ApiError('auth', "OpenRouter rejected the API key. Check OPENROUTER_API_KEY in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally).", 500);
   }
   if (status === 402) return new ApiError('credits', 'The OpenRouter account is out of credits (or hit its spending limit).');
   if (status === 429) return new ApiError('rate-limit', 'Too many requests right now. Wait a moment and try again.', 429);
@@ -39,7 +39,7 @@ function errorFor(status: number, detail: string): ApiError {
 /** Sends messages to a model and returns its reply text. */
 export async function complete(env: Env, model: string, messages: ModelMessage[], maxTokens = 1200): Promise<string> {
   const key = env.OPENROUTER_API_KEY;
-  if (!key) throw new ApiError('config', 'OPENROUTER_API_KEY is not set. Add it to .dev.vars (see .dev.vars.example).', 500);
+  if (!key) throw new ApiError('config', "OPENROUTER_API_KEY is not set. Add it as a secret in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally).", 500);
   const base = env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 
   let res: Response;

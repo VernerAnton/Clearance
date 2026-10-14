@@ -23,12 +23,12 @@ export async function handleChat(request: Request, env: Env): Promise<Response> 
   const req = checked.value;
 
   if (!env.TUTOR_MODEL) {
-    return json({ error: { kind: 'config', message: 'TUTOR_MODEL is not set. Add it to .dev.vars (see .dev.vars.example).' } }, 500);
+    return json({ error: { kind: 'config', message: "TUTOR_MODEL is not set. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
   }
 
   const needsJudge = modeById(req.mode).hasLevels && req.level <= 2;
   if (needsJudge && !env.JUDGE_MODEL) {
-    return json({ error: { kind: 'config', message: 'JUDGE_MODEL is not set. Add it to .dev.vars (see .dev.vars.example).' } }, 500);
+    return json({ error: { kind: 'config', message: "JUDGE_MODEL is not set. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
   }
 
   try {
