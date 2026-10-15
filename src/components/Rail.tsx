@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { LEVELS, MODES, levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
+import { APP_VERSION } from '../version';
 
 interface Props {
   mode: ModeId;
@@ -31,8 +32,17 @@ export function Rail({ mode, level, resetNote, onMode, onLevel, onNewMission, on
       <div className="brand">
         <h1>
           Clearance<span className="slashes">//</span>
+          {/* The version is what you compare between devices; the build line under the
+              tagline is for when something looks wrong. On screen, not only in a tooltip,
+              so it can be read on a phone. */}
+          <span className="version-number" title={`Build ${__BUILD_COMMIT__}, ${__BUILD_TIME__}`}>
+            V{APP_VERSION}
+          </span>
         </h1>
         <p>Coding tutor. You pick how much help; the app enforces it.</p>
+        <p className="version-build" title={`Build ${__BUILD_COMMIT__}, built ${__BUILD_TIME__}`}>
+          {__BUILD_COMMIT__} · {__BUILD_TIME__}
+        </p>
       </div>
 
       <section>

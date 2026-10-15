@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { buildInfo } from './scripts/vite-plugin-build-info.ts';
 import { selfHostPyodide } from './scripts/vite-plugin-pyodide.ts';
 
 // Same headers as public/_headers (which Cloudflare uses), so `npm run dev`
@@ -10,7 +11,7 @@ const isolationHeaders = {
 };
 
 export default defineConfig({
-  plugins: [react(), selfHostPyodide()],
+  plugins: [react(), selfHostPyodide(), buildInfo()],
   server: {
     headers: isolationHeaders,
     // `npm run dev` only serves the page. For the tutor, also run `npm start`

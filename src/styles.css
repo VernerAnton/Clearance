@@ -135,6 +135,22 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 
 /* ---------- Settings popup ---------- */
 .settings-btn { margin-top: auto; align-self: flex-start; display: inline-flex; gap: 8px; align-items: center; }
+.brand .version-number { margin-left: 8px; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; vertical-align: 3px; letter-spacing: 0.02em; }
+/* Smaller and quieter than the version, but still readable on both themes. */
+.brand .version-build { margin-top: 2px; font-family: var(--font-code); font-size: 0.7rem; color: var(--ink-soft); }
+
+/* ---------- "A newer version is ready" ---------- */
+/* Desktop: floats over the bottom of the output (content, not controls). */
+.update-prompt {
+  position: fixed; z-index: 20; bottom: 16px; left: calc(var(--rail-w, 252px) + 16px);
+  width: min(440px, calc(100vw - var(--rail-w, 252px) - 32px));
+  display: flex; gap: 12px; align-items: center; justify-content: space-between;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--neon);
+  border-radius: 10px; padding: 10px 12px 10px 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.update-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.update-text .hint { margin: 0; }
+.update-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .settings-dialog {
   padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink);
   width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 48px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -255,12 +271,17 @@ pre.code-block .lang { position: absolute; top: 5px; right: 10px; font-size: 0.7
 
 /* ---------- Smaller screens: panels stack, nothing scrolls sideways ---------- */
 @media (max-width: 1100px) {
+  /* Panels stack and the page scrolls: pin the prompt to the top of the screen, full width. */
+  .update-prompt { top: 8px; bottom: auto; left: 16px; right: 16px; width: auto; }
   .app { grid-template-columns: 236px minmax(0, 1fr); height: auto; min-height: 100%; }
   .col-splitter { display: none; }
   .work { min-height: 80vh; border-right: 0; }
   .chat { grid-column: 1 / -1; border-top: 1px solid var(--line); min-height: 70vh; }
 }
 @media (max-width: 700px) {
+  /* Phone width: message on top, buttons underneath, so the text isn't squeezed. */
+  .update-prompt { flex-direction: column; align-items: stretch; }
+  .update-actions { justify-content: flex-end; }
   .app { grid-template-columns: minmax(0, 1fr); }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
   .tabs { flex-wrap: wrap; }

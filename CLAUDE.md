@@ -13,6 +13,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - If something in `SPEC.md` turns out to be impossible or a bad idea, say so and propose an alternative before building around it.
 - Keep dependencies few. Ask before adding a large one that isn't named in the spec.
 - Commit at the end of each phase with a clear message.
+- **Bump `APP_VERSION` in `src/version.ts` by one whenever work ships** (every push deploys, so in practice: every push that changes something the user would notice). The user reads `V<n>` at the bottom of the left rail to check whether a device runs the newest build; a counter nobody bumps makes that useless.
 
 ## Stack (decided)
 
@@ -60,4 +61,5 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `shared/models.ts`: the models the settings popup offers. The server only accepts these (the site is public, so visitors must not be able to pick any model on the key). `GET /api/config` tells the popup the server's default models and whether the Jev key exists.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
 - `public/manifest.webmanifest`, `public/icons/`, `public/sw.js`: the PWA (installable app). The service worker is network-first: online you always get the newest files, the saved copy is only an offline fallback, and `/api` is never saved. It's only registered in the built app, not in `npm run dev`. The PNG icons are rendered from `public/icons/*.svg`.
+- Update detection (`src/hooks/useAppUpdate.ts`, `src/components/UpdatePrompt.tsx`): the service worker is **registered by hand on purpose** in that hook, not in `main.tsx` and not by a plugin. It checks for a new build when the app becomes visible (and hourly), and shows "A newer version is ready" with Reload / Later. It must **never reload by itself** (that would lose a half-typed message or a running program), "Later" must not mean "never" (the `stale` flag), and a first install must not be announced as an update. It only works because `scripts/vite-plugin-build-info.ts` stamps a build ID into `dist/sw.js` (the `__BUILD_ID__` line in `public/sw.js`): without it `sw.js` is identical in every build, the browser never sees a new worker, and the app silently never says it's stale. Don't remove that line or the plugin. Because the ID changes on every build, the prompt appears after every deploy, even when `APP_VERSION` wasn't bumped.
 - `public/_headers`: COOP/COEP headers for Cloudflare (Workers static assets read this file). `vite.config.ts` sets the same headers for dev and preview.

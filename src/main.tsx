@@ -12,11 +12,3 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
-
-// The service worker makes the app installable (a PWA) and lets it open offline.
-// Only in the built app: during `npm run dev` it would get in the way of live reloading.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('Service worker not registered:', err));
-  });
-}

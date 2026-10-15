@@ -4,6 +4,11 @@
 // from the server. Each response is also saved, and the saved copy is only used
 // when the network fails (offline). The tutor (/api) is never saved: it needs
 // the internet.
+//
+// Build: __BUILD_ID__
+// (Replaced with the commit and build time by scripts/vite-plugin-build-info.ts.
+// The browser only notices a new deploy when this file's bytes change, so this
+// line is what makes the app's "a newer version is ready" prompt work.)
 const CACHE = 'clearance-v1';
 
 self.addEventListener('install', () => self.skipWaiting());

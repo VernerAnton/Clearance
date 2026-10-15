@@ -8,7 +8,9 @@ import { Rail } from './components/Rail';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
+import { useAppUpdate } from './hooks/useAppUpdate';
 import { useCodeRunner } from './hooks/useCodeRunner';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { ChatFailed, sendChat } from './lib/api';
 import { LIMITS as API_LIMITS, type HistoryMessage } from '../shared/api';
 import type { DebugInfo } from './components/Inspector';
@@ -36,6 +38,8 @@ export function App() {
   const { tabs, activeId } = tabsState;
   const active = tabs.find((t) => t.id === activeId)!;
   const runner = useCodeRunner();
+  // Registers the service worker and offers a reload when a newer build is deployed.
+  const update = useAppUpdate();
   const { clearErrorLine } = runner;
   // Ctrl+Enter inside the editor reads the tab through this ref, so it always gets the latest one.
   const activeRef = useRef(active);
@@ -224,6 +228,7 @@ export function App() {
         onNewMission={newMission}
         onOpenSettings={() => setSettingsOpen(true)}
       />
+      {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />}
       <SettingsDialog
         open={settingsOpen}
         settings={settings}
