@@ -58,4 +58,5 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `shared/api.ts`: the /api/chat request and response types, used by both sides.
 - `shared/models.ts`: the models the settings popup offers. The server only accepts these (the site is public, so visitors must not be able to pick any model on the key). `GET /api/config` tells the popup the server's default models and whether the Jev key exists.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
+- `public/manifest.webmanifest`, `public/icons/`, `public/sw.js`: the PWA (installable app). The service worker is network-first: online you always get the newest files, the saved copy is only an offline fallback, and `/api` is never saved. It's only registered in the built app, not in `npm run dev`. The PNG icons are rendered from `public/icons/*.svg`.
 - `public/_headers`: COOP/COEP headers for Cloudflare (Workers static assets read this file). `vite.config.ts` sets the same headers for dev and preview.

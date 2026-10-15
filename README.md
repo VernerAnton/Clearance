@@ -41,6 +41,10 @@ To compare judge models, run `npm run eval:judge` (or `npm run eval:judge -- --m
 
 The judge can also be TypeSafe's Jev, a model that answers yes/no questions with probabilities instead of writing text. Set `JUDGE_MODEL=typesafe:jev-latest` and add `TYPESAFE_API_KEY` (from console.typesafe.ai). Its questions are in `prompts/jev-questions.md`; a draft is blocked when any of them is 50% likely or more. Compare it with `npm run eval:judge -- --model typesafe:jev-latest`.
 
+## Installing it as an app
+
+Clearance is a PWA, so the browser can install it like an app: open https://clearance.verner-sdr.workers.dev, then use the install icon in Chrome or Edge's address bar (or the menu → *Install Clearance*). On a phone: *Add to Home Screen*. The installed app opens and runs Python and SQL even offline; the tutor needs a connection.
+
 ## Building it with Claude Code
 
 `SPEC.md` lists the phases and what each one does. `CLAUDE.md` holds the working rules Claude Code follows, including where to stop for your review.
