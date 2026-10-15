@@ -52,9 +52,10 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - `src/python/`: the Python runner. `python.worker.ts` runs Pyodide off the main thread, `runner.py` runs the learner's code and trims tracebacks, `PythonRunner.ts` is the page side (input(), time limit, Stop).
 - `src/sql/`: the SQL runner. `sql.worker.ts` runs sql.js on a fresh database per run, `SqlRunner.ts` adds the time limit and Stop.
 - `src/hooks/useCodeRunner.ts`: runs tabs and keeps each tab's output, last run and error line.
-- `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers).
+- `src/components/`: React components (`Rail`, `Workspace`, `CodeEditor`, `Chat`, `Splitter` for draggable dividers, `SettingsDialog` for the settings popup).
 - `server/worker.ts`: the Worker entry: `/api/chat`, `/api/health`, and the static site for everything else.
 - `server/`: the backend logic (validation, message building, OpenRouter calls, guard, missions), with unit tests. The judge is pluggable: `judges.ts` picks a chat-model judge (`judge.ts`) or TypeSafe's Jev (`jev.ts`, questions in `prompts/jev-questions.md`) from `JUDGE_MODEL`. `prompts.generated.ts` is generated, not committed.
 - `shared/api.ts`: the /api/chat request and response types, used by both sides.
+- `shared/models.ts`: the models the settings popup offers. The server only accepts these (the site is public, so visitors must not be able to pick any model on the key). `GET /api/config` tells the popup the server's default models and whether the Jev key exists.
 - `scripts/vite-plugin-pyodide.ts`: serves Pyodide from `node_modules/pyodide` in dev and copies it to `dist/pyodide/` on build. Pyodide is never committed.
 - `public/_headers`: COOP/COEP headers for Cloudflare (Workers static assets read this file). `vite.config.ts` sets the same headers for dev and preview.

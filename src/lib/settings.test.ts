@@ -3,12 +3,28 @@ import { DEFAULT_SETTINGS, parseSettings } from './settings';
 
 describe('parseSettings', () => {
   it('starts with every editor helper off and the theme following the computer', () => {
-    expect(parseSettings(null)).toEqual({ liveLinting: false, autocomplete: false, closeBrackets: false, theme: 'system', debugPanel: false });
+    expect(parseSettings(null)).toEqual({
+      liveLinting: false,
+      autocomplete: false,
+      closeBrackets: false,
+      theme: 'system',
+      debugPanel: false,
+      tutorModel: '',
+      judgeModel: '',
+    });
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
   it('keeps saved values', () => {
-    const saved = { liveLinting: true, autocomplete: true, closeBrackets: true, theme: 'dark', debugPanel: true };
+    const saved = {
+      liveLinting: true,
+      autocomplete: true,
+      closeBrackets: true,
+      theme: 'dark',
+      debugPanel: true,
+      tutorModel: 'minimax/minimax-m3',
+      judgeModel: 'typesafe:jev-latest',
+    };
     expect(parseSettings(JSON.stringify(saved))).toEqual(saved);
   });
 
@@ -17,5 +33,12 @@ describe('parseSettings', () => {
     expect(parseSettings('{"autocomplete": "yes", "theme": "purple"}')).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('not json')).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('null')).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('forgets a saved model that is no longer on the list', () => {
+    expect(parseSettings('{"tutorModel": "old/model", "judgeModel": "typesafe:jev-latest"}')).toMatchObject({
+      tutorModel: '',
+      judgeModel: 'typesafe:jev-latest',
+    });
   });
 });

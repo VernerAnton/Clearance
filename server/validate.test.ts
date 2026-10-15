@@ -39,4 +39,18 @@ describe('validateChatRequest', () => {
     expect(result.value.history).toHaveLength(30);
     expect(result.value.history.at(-1)?.content).toBe('49');
   });
+
+  it('accepts models from the allowed list, and treats empty as "server default"', () => {
+    const ok = validateChatRequest({ ...good, models: { tutor: 'minimax/minimax-m3', judge: 'typesafe:jev-latest' } });
+    expect(ok).toMatchObject({ ok: true, value: { models: { tutor: 'minimax/minimax-m3', judge: 'typesafe:jev-latest' } } });
+    expect(validateChatRequest({ ...good, models: { tutor: '', judge: '' } })).toMatchObject({ ok: true, value: { models: {} } });
+    expect(validateChatRequest(good)).toMatchObject({ ok: true, value: { models: {} } });
+  });
+
+  it('refuses models that are not on the list, so visitors cannot spend the key on anything', () => {
+    expect(validateChatRequest({ ...good, models: { tutor: 'z-ai/glm-5.3-prime' } })).toMatchObject({ ok: false });
+    expect(validateChatRequest({ ...good, models: { judge: 'some/expensive-model' } })).toMatchObject({ ok: false });
+    expect(validateChatRequest({ ...good, models: { tutor: 42 } })).toMatchObject({ ok: false });
+    expect(validateChatRequest({ ...good, models: 'z-ai/glm-5.3' })).toMatchObject({ ok: false });
+  });
 });

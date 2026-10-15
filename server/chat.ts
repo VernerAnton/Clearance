@@ -24,24 +24,29 @@ export async function handleChat(request: Request, env: Env & JevEnv): Promise<R
   if (!checked.ok) return json({ error: { kind: 'bad-request', message: checked.error } }, 400);
   const req = checked.value;
 
-  if (!env.TUTOR_MODEL) {
-    return json({ error: { kind: 'config', message: "TUTOR_MODEL is not set. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
+  // A model picked in Settings wins; otherwise the server's default.
+  const tutorModel = req.models?.tutor || env.TUTOR_MODEL;
+  const judgeModel = req.models?.judge || env.JUDGE_MODEL;
+
+  if (!tutorModel) {
+    return json({ error: { kind: 'config', message: "No tutor model: pick one in Settings, or set TUTOR_MODEL. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
   }
 
   const needsJudge = modeById(req.mode).hasLevels && req.level <= 2;
-  if (needsJudge && !env.JUDGE_MODEL) {
-    return json({ error: { kind: 'config', message: "JUDGE_MODEL is not set. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
+  if (needsJudge && !judgeModel) {
+    return json({ error: { kind: 'config', message: "No judge model: pick one in Settings, or set JUDGE_MODEL. Add it in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally)." } }, 500);
   }
 
   try {
     const response = await runGuarded(req, {
       complete: (model, messages) => complete(env, model, messages),
-      tutorModel: env.TUTOR_MODEL,
-      judge: makeJudge(env, env.JUDGE_MODEL ?? ''),
+      tutorModel,
+      judge: makeJudge(env, judgeModel ?? ''),
       prompts: { tutorSystem: TUTOR_SYSTEM, retryNote: RETRY_NOTE },
       rules,
       log: (message) => console.log(message),
     });
+    response.debug.models = { tutor: tutorModel, judge: needsJudge ? (judgeModel ?? null) : null };
     return json(response);
   } catch (err) {
     if (err instanceof ApiError) return json({ error: { kind: err.kind, message: err.message } }, err.status);

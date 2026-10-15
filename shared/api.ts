@@ -16,6 +16,8 @@ export interface ChatRequest {
   history: HistoryMessage[];
   activeTab: { title: string; lang: Lang; code: string; fromMission: boolean };
   lastRun: { output: string; endedWithError: boolean } | null;
+  /** Models picked in Settings. Empty or missing means the server's default. */
+  models?: { tutor?: string; judge?: string };
 }
 
 /** A draft the guard blocked before the learner saw it. */
@@ -51,6 +53,8 @@ export interface ChatResponse {
   debug: {
     tutorMessages: { role: string; content: string }[];
     judgeChecks: JudgeCheck[];
+    /** Which models were used (judge is null when it wasn't needed). */
+    models?: { tutor: string; judge: string | null };
   };
 }
 

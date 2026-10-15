@@ -1,19 +1,17 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { LEVELS, MODES, levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
-import type { Settings, Theme } from '../lib/settings';
 
 interface Props {
   mode: ModeId;
   level: Level;
   resetNote: string;
-  settings: Settings;
   onMode: (mode: ModeId) => void;
   onLevel: (level: Level) => void;
   onNewMission: () => void;
-  onSettings: (settings: Settings) => void;
+  onOpenSettings: () => void;
 }
 
-export function Rail({ mode, level, resetNote, settings, onMode, onLevel, onNewMission, onSettings }: Props) {
+export function Rail({ mode, level, resetNote, onMode, onLevel, onNewMission, onOpenSettings }: Props) {
   const current = modeById(mode);
   const laddersOn = current.hasLevels;
   const rungRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -108,40 +106,9 @@ export function Rail({ mode, level, resetNote, settings, onMode, onLevel, onNewM
         <p className="hint">Clears the chat. Your tabs stay.</p>
       </section>
 
-      <section>
-        <h2>Settings</h2>
-        <div className="settings">
-          {(
-            [
-              ['liveLinting', 'Live linting', 'Underlines syntax errors while you type.'],
-              ['autocomplete', 'Autocomplete', 'Suggests names and keywords while you type.'],
-              ['closeBrackets', 'Auto-close brackets', 'Typing ( [ { or a quote adds the closing one.'],
-              ['debugPanel', 'Debug panel', 'Shows what the tutor and the judge receive, and any blocked drafts.'],
-            ] as const
-          ).map(([key, name, plain]) => (
-            <label className="check" key={key}>
-              <input
-                type="checkbox"
-                checked={settings[key]}
-                onChange={(e) => onSettings({ ...settings, [key]: e.target.checked })}
-              />
-              <span>
-                {name}
-                <span className="hint block">{plain}</span>
-              </span>
-            </label>
-          ))}
-          <label className="field">
-            <span>Theme</span>
-            <select value={settings.theme} onChange={(e) => onSettings({ ...settings, theme: e.target.value as Theme })}>
-              <option value="system">Same as my computer</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <p className="hint">Drag the lines between panels to resize them. Double-click a line to reset it.</p>
-        </div>
-      </section>
+      <button type="button" className="btn settings-btn" onClick={onOpenSettings}>
+        <span aria-hidden="true">⚙</span> Settings
+      </button>
     </aside>
   );
 }

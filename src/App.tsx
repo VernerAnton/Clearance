@@ -5,6 +5,7 @@ import { loadSettings, saveSettings, type Settings } from './lib/settings';
 import { loadTabs, newId, nextScratchTitle, saveTabs, uniqueTitle, type Lang, type Tab, type TabsState } from './lib/tabs';
 import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
+import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
 import { useCodeRunner } from './hooks/useCodeRunner';
@@ -28,6 +29,7 @@ export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>(welcome);
   const [focusTick, setFocusTick] = useState(0);
   const [layout, setLayout] = useState<Layout>(loadLayout);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const appRef = useRef<HTMLDivElement>(null);
   const resetTimer = useRef<number | undefined>(undefined);
 
@@ -145,6 +147,7 @@ export function App() {
         history,
         activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
         lastRun,
+        models: { tutor: settings.tutorModel, judge: settings.judgeModel },
       });
       setDebugInfo({ debug: res.debug, intercepted: res.intercepted });
       const where = m.hasLevels ? `${m.label}, Clearance ${sentLevel}` : m.label;
@@ -201,11 +204,17 @@ export function App() {
         mode={mode}
         level={level}
         resetNote={resetNote}
-        settings={settings}
         onMode={chooseMode}
         onLevel={setLevel}
         onNewMission={newMission}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        settings={settings}
         onSettings={setSettings}
+        onResetLayout={() => setLayout({ ...DEFAULT_LAYOUT })}
+        onClose={() => setSettingsOpen(false)}
       />
       <Splitter
         axis="x"

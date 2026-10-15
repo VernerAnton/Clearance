@@ -35,6 +35,8 @@ You need [Node.js](https://nodejs.org) 22.18 or newer, and an [OpenRouter](https
 
    Then open http://localhost:8788. This builds the site and runs it together with the tutor's server, the same way it runs on Cloudflare.
 
+In the app, **⚙ Settings** (bottom of the left rail) lets you pick the tutor and judge models from a fixed list; "Default" uses `TUTOR_MODEL` / `JUDGE_MODEL`. The list lives in `shared/models.ts`.
+
 To compare judge models, run `npm run eval:judge` (or `npm run eval:judge -- --model provider/model-name`). It checks the judge against `evals/judge-cases.jsonl` and lists every case it got wrong.
 
 The judge can also be TypeSafe's Jev, a model that answers yes/no questions with probabilities instead of writing text. Set `JUDGE_MODEL=typesafe:jev-latest` and add `TYPESAFE_API_KEY` (from console.typesafe.ai). Its questions are in `prompts/jev-questions.md`; a draft is blocked when any of them is 50% likely or more. Compare it with `npm run eval:judge -- --model typesafe:jev-latest`.

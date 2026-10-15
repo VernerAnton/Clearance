@@ -1,5 +1,6 @@
 // Talks to the app's own server (POST /api/chat). The model is never called from the browser.
 import type { ChatError, ChatRequest, ChatResponse } from '../../shared/api.ts';
+import type { ServerConfig } from '../../shared/models.ts';
 
 export class ChatFailed extends Error {}
 
@@ -30,4 +31,14 @@ export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
     );
   }
   return data;
+}
+
+/** The server's default models and which keys exist, for the settings popup. Null if unreachable. */
+export async function fetchServerConfig(): Promise<ServerConfig | null> {
+  try {
+    const res = await fetch('/api/config');
+    return res.ok ? ((await res.json()) as ServerConfig) : null;
+  } catch {
+    return null;
+  }
 }

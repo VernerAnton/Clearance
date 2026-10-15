@@ -20,6 +20,12 @@ export function Inspector({ info }: { info: DebugInfo | null }) {
   const { debug, intercepted } = info;
   return (
     <section className="inspector" id="inspector" aria-label="What the tutor receives">
+      {debug.models && (
+        <p className="models-used">
+          Tutor: <code>{debug.models.tutor}</code> · Judge:{' '}
+          {debug.models.judge ? <code>{debug.models.judge}</code> : 'not needed at this level'}
+        </p>
+      )}
       <h3>Last request to the tutor model</h3>
       <p>The app adds the mode, the clearance rule, your open tab and its last output to your message.</p>
       <pre>{show(debug.tutorMessages)}</pre>
