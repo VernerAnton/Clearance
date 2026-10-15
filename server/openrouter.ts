@@ -36,8 +36,32 @@ function errorFor(status: number, detail: string): ApiError {
   return new ApiError('upstream', `The model service had a problem (${status}). Try again in a moment.`);
 }
 
+/**
+ * The models we use "think" before answering, and that thinking counts toward
+ * max_tokens. With a tight limit the thinking can use it all up, leaving an
+ * empty answer. So: ask for short thinking, and leave plenty of room. The limit
+ * is only a ceiling; you pay for the tokens actually used.
+ */
+export const MAX_TOKENS = 8000;
+export const REASONING = { effort: 'low', exclude: true } as const;
+
+/** How many times an empty reply is retried before giving up. */
+const EMPTY_RETRIES = 1;
+
 /** Sends messages to a model and returns its reply text. */
-export async function complete(env: Env, model: string, messages: ModelMessage[], maxTokens = 1200): Promise<string> {
+export async function complete(env: Env, model: string, messages: ModelMessage[], maxTokens = MAX_TOKENS): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    const { content, finishReason } = await requestOnce(env, model, messages, maxTokens);
+    if (content.trim()) return content;
+    console.log(`Empty reply from ${model} (finish_reason: ${finishReason})`);
+    if (attempt >= EMPTY_RETRIES) {
+      const why = finishReason === 'length' ? ' It spent its whole answer length thinking.' : '';
+      throw new ApiError('upstream', `The model (${model}) sent an empty reply.${why} Try again.`);
+    }
+  }
+}
+
+async function requestOnce(env: Env, model: string, messages: ModelMessage[], maxTokens: number) {
   const key = env.OPENROUTER_API_KEY;
   if (!key) throw new ApiError('config', "OPENROUTER_API_KEY is not set. Add it as a secret in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally).", 500);
   const base = env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
@@ -47,7 +71,7 @@ export async function complete(env: Env, model: string, messages: ModelMessage[]
     res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'Clearance' },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+      body: JSON.stringify({ model, messages, max_tokens: maxTokens, reasoning: REASONING }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (err) {
@@ -55,7 +79,10 @@ export async function complete(env: Env, model: string, messages: ModelMessage[]
     throw new ApiError('upstream', timedOut ? 'The model took too long to answer. Try again.' : 'Could not reach OpenRouter. Check the internet connection.');
   }
 
-  type Completion = { choices?: { message?: { content?: unknown } }[]; error?: { code?: number; message?: string } };
+  type Completion = {
+    choices?: { message?: { content?: unknown }; finish_reason?: string }[];
+    error?: { code?: number; message?: string };
+  };
   let data: Completion;
   try {
     data = (await res.json()) as Completion;
@@ -65,7 +92,7 @@ export async function complete(env: Env, model: string, messages: ModelMessage[]
   // OpenRouter sometimes reports errors inside a 200 response.
   if (!res.ok || data.error) throw errorFor(data.error?.code ?? res.status, data.error?.message ?? res.statusText);
 
-  const content = data.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) throw new ApiError('upstream', 'The model sent an empty reply. Try again.');
-  return content;
+  const choice = data.choices?.[0];
+  const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
+  return { content, finishReason: choice?.finish_reason ?? 'unknown' };
 }
