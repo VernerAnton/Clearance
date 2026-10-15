@@ -1,6 +1,6 @@
 // Calls OpenRouter's OpenAI-compatible chat API. Only ever runs on the server,
 // so the API key never reaches the browser.
-import type { ChatError } from '../shared/api.ts';
+import type { ChatError, Thinking } from '../shared/api.ts';
 import type { ModelMessage } from './messages.ts';
 
 export interface Env {
@@ -22,7 +22,6 @@ export class ApiError extends Error {
   }
 }
 
-const TIMEOUT_MS = 60_000;
 
 function errorFor(status: number, detail: string): ApiError {
   if (status === 401 || status === 403) {
@@ -38,20 +37,25 @@ function errorFor(status: number, detail: string): ApiError {
 
 /**
  * The models we use "think" before answering, and that thinking counts toward
- * max_tokens. With a tight limit the thinking can use it all up, leaving an
- * empty answer. So: ask for short thinking, and leave plenty of room. The limit
- * is only a ceiling; you pay for the tokens actually used.
+ * max_tokens. So the more they may think, the more room (and time) they get, or
+ * the thinking can use it all up and leave an empty answer. The limit is only a
+ * ceiling: you pay for the tokens actually used, and thinking tokens count.
  */
-export const MAX_TOKENS = 8000;
-export const REASONING = { effort: 'low', exclude: true } as const;
+export const BUDGET: Record<Thinking, { maxTokens: number; timeoutMs: number }> = {
+  low: { maxTokens: 8_000, timeoutMs: 90_000 },
+  medium: { maxTokens: 16_000, timeoutMs: 150_000 },
+  high: { maxTokens: 32_000, timeoutMs: 240_000 },
+};
+/** Kept for callers that only care about the default. */
+export const MAX_TOKENS = BUDGET.low.maxTokens;
 
 /** How many times an empty reply is retried before giving up. */
 const EMPTY_RETRIES = 1;
 
-/** Sends messages to a model and returns its reply text. */
-export async function complete(env: Env, model: string, messages: ModelMessage[], maxTokens = MAX_TOKENS): Promise<string> {
+/** Sends messages to a model and returns its reply text. `thinking` sets how hard it thinks first. */
+export async function complete(env: Env, model: string, messages: ModelMessage[], thinking: Thinking = 'low'): Promise<string> {
   for (let attempt = 0; ; attempt++) {
-    const { content, finishReason } = await requestOnce(env, model, messages, maxTokens);
+    const { content, finishReason } = await requestOnce(env, model, messages, thinking);
     if (content.trim()) return content;
     console.log(`Empty reply from ${model} (finish_reason: ${finishReason})`);
     if (attempt >= EMPTY_RETRIES) {
@@ -61,7 +65,8 @@ export async function complete(env: Env, model: string, messages: ModelMessage[]
   }
 }
 
-async function requestOnce(env: Env, model: string, messages: ModelMessage[], maxTokens: number) {
+async function requestOnce(env: Env, model: string, messages: ModelMessage[], thinking: Thinking) {
+  const { maxTokens, timeoutMs } = BUDGET[thinking];
   const key = env.OPENROUTER_API_KEY;
   if (!key) throw new ApiError('config', "OPENROUTER_API_KEY is not set. Add it as a secret in the Worker's Settings → Variables and Secrets on Cloudflare (or in .dev.vars when running locally).", 500);
   const base = env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
@@ -71,8 +76,9 @@ async function requestOnce(env: Env, model: string, messages: ModelMessage[], ma
     res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'Clearance' },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens, reasoning: REASONING }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      // exclude: the thinking itself isn't sent back, only the answer.
+      body: JSON.stringify({ model, messages, max_tokens: maxTokens, reasoning: { effort: thinking, exclude: true } }),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
     const timedOut = err instanceof Error && err.name === 'TimeoutError';

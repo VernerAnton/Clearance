@@ -1,7 +1,7 @@
 // Checks a POST /api/chat body. The level is validated here, on the server:
 // the browser picks it, but nothing that arrives is trusted blindly.
 import { MODES, type ModeId } from '../shared/clearance.ts';
-import { LIMITS, type ChatRequest, type HistoryMessage } from '../shared/api.ts';
+import { LIMITS, THINKING_LEVELS, type ChatRequest, type HistoryMessage, type Thinking } from '../shared/api.ts';
 import { isJudgeModel, isTutorModel } from '../shared/models.ts';
 
 export type Validated = { ok: true; value: ChatRequest } | { ok: false; error: string };
@@ -11,7 +11,7 @@ const fail = (error: string): Validated => ({ ok: false, error });
 
 export function validateChatRequest(body: unknown): Validated {
   if (!isObject(body)) return fail('The request must be a JSON object.');
-  const { mode, level, message, history, activeTab, lastRun, models } = body;
+  const { mode, level, message, history, activeTab, lastRun, models, thinking } = body;
 
   if (typeof mode !== 'string' || !MODES.some((m) => m.id === mode)) return fail(`Unknown mode: ${String(mode)}.`);
   if (typeof level !== 'number' || !Number.isInteger(level) || level < 1 || level > 5) {
@@ -59,10 +59,15 @@ export function validateChatRequest(body: unknown): Validated {
     }
   }
 
+  if (thinking !== undefined && !THINKING_LEVELS.includes(thinking as Thinking)) {
+    return fail('Thinking must be low, medium or high.');
+  }
+
   return {
     ok: true,
     value: {
       models: cleanModels,
+      thinking: (thinking as Thinking | undefined) ?? 'low',
       mode: mode as ModeId,
       level,
       message,

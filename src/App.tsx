@@ -10,7 +10,7 @@ import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
 import { useCodeRunner } from './hooks/useCodeRunner';
 import { ChatFailed, sendChat } from './lib/api';
-import type { HistoryMessage } from '../shared/api';
+import { LIMITS as API_LIMITS, type HistoryMessage } from '../shared/api';
 import type { DebugInfo } from './components/Inspector';
 
 const WELCOME =
@@ -148,6 +148,7 @@ export function App() {
         activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
         lastRun,
         models: { tutor: settings.tutorModel, judge: settings.judgeModel },
+        thinking: settings.thinking,
       });
       setDebugInfo({ debug: res.debug, intercepted: res.intercepted });
       const where = m.hasLevels ? `${m.label}, Clearance ${sentLevel}` : m.label;
@@ -159,21 +160,35 @@ export function App() {
         chips.push({ text: `Spoiler intercepted: ${n} draft${n > 1 ? 's' : ''} blocked before you saw ${n > 1 ? 'them' : 'it'}`, tone: 'guard' });
       }
       let remembered = res.reply;
-      if (res.mission) {
-        // The only way model output reaches the editor: a mission, always in a brand-new tab.
-        const { mission } = res;
+      if (res.missions.length > 0) {
+        // The only way model output reaches the editor: missions, each in a brand-new tab.
+        const { missions } = res;
         setTabsState((s) => {
-          const tab: Tab = {
-            id: newId(),
-            title: uniqueTitle(s.tabs, mission.title),
-            lang: mission.lang,
-            code: mission.code,
-            fromMission: true,
-          };
-          return { tabs: [...s.tabs, tab], activeId: tab.id };
+          const added: Tab[] = [];
+          for (const mission of missions) {
+            added.push({
+              id: newId(),
+              title: uniqueTitle([...s.tabs, ...added], mission.title),
+              lang: mission.lang,
+              code: mission.code,
+              fromMission: true,
+            });
+          }
+          // Show the first new mission.
+          return { tabs: [...s.tabs, ...added], activeId: added[0].id };
         });
-        chips.push({ text: `Mission opened in a new tab: ${mission.title}`, tone: 'mission' });
-        remembered = `${res.reply}\n\n[Mission "${mission.title}" opened in a new tab]`.trim();
+        const titles = missions.map((m) => m.title);
+        chips.push({
+          text:
+            missions.length === 1
+              ? `Mission opened in a new tab: ${titles[0]}`
+              : `${missions.length} missions opened in new tabs: ${titles.join(', ')}`,
+          tone: 'mission',
+        });
+        if (res.missionsSkipped > 0) {
+          chips.push({ text: `${res.missionsSkipped} more left out: up to ${API_LIMITS.missions} missions per message`, tone: 'guard' });
+        }
+        remembered = `${res.reply}\n\n[Opened in new tabs: ${titles.map((t) => `"${t}"`).join(', ')}]`.trim();
       }
       const reply: ChatMessage = { id: ++msgSeq, role: 'tutor', text: res.reply, history: remembered, chips };
       setMessages((ms) => [...ms, reply]);

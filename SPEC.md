@@ -116,6 +116,7 @@ Runs on the server for every reply.
 - [x] The client opens it in a **new** tab marked as a mission (duplicate titles get a number). Model output never writes into an existing tab.
 - [x] The chat shows "Mission opened in a new tab" instead of the code.
 - [x] No hidden tests and no Check button. The learner runs the code and judges the result.
+- [x] Added later: one reply can contain several missions (up to 10, `LIMITS.missions`); each opens in its own tab. The learner asks for the number in the chat.
 
 ### Phase 7: Theme and polish
 - [ ] Clearance vocabulary everywhere (section 2), neon accent on the ladder, both themes checked.

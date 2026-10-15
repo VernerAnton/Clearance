@@ -148,6 +148,12 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .settings-body .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .settings-body .row .hint { margin: 0; }
 .settings-body footer { margin: 0; }
+.segmented { display: inline-flex; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+.segmented label { padding: 5px 16px; cursor: pointer; font-size: 0.9rem; position: relative; }
+.segmented label + label { border-left: 1.5px solid var(--line); }
+.segmented label.on { background: var(--neon); color: var(--neon-ink); font-weight: 700; }
+.segmented input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segmented label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: -3px; }
 .icon-btn { background: none; border: 0; font-size: 1.5rem; line-height: 1; padding: 2px 8px; border-radius: 6px; color: var(--ink-soft); }
 .icon-btn:hover { color: var(--ink); background: var(--grid); }
 .inspector .models-used { color: var(--ink); }

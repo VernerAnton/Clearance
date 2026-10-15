@@ -39,7 +39,7 @@ export async function handleChat(request: Request, env: Env & JevEnv): Promise<R
 
   try {
     const response = await runGuarded(req, {
-      complete: (model, messages) => complete(env, model, messages),
+      complete: (model, messages) => complete(env, model, messages, req.thinking),
       tutorModel,
       judge: makeJudge(env, judgeModel ?? ''),
       prompts: { tutorSystem: TUTOR_SYSTEM, retryNote: RETRY_NOTE },

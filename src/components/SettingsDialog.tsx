@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { JUDGE_MODELS, TUTOR_MODELS, type ModelOption, type ServerConfig } from '../../shared/models';
 import { fetchServerConfig } from '../lib/api';
+import type { Thinking } from '../../shared/api';
 import type { Settings, Theme } from '../lib/settings';
 
 interface Props {
@@ -17,6 +18,12 @@ const EDITOR_OPTIONS = [
   ['closeBrackets', 'Auto-close brackets', 'Typing ( [ { or a quote adds the closing one.'],
 ] as const;
 
+const THINKING_NOTES: Record<Thinking, string> = {
+  low: 'Fastest and cheapest. Fine for everyday hints.',
+  medium: 'Slower, more careful. Good for several varied missions.',
+  high: 'Slowest and costs the most (thinking is billed). For big or tricky requests.',
+};
+
 const labelOf = (list: ModelOption[], id: string | null | undefined) => list.find((m) => m.id === id)?.label ?? id;
 
 function ModelPicker(props: {
@@ -31,12 +38,16 @@ function ModelPicker(props: {
 }) {
   const { id, label, plain, list, value, serverDefault, disabled, onChange } = props;
   const picked = list.find((m) => m.id === value);
-  const defaultName = serverDefault ? labelOf(list, serverDefault) : 'none set on the server';
+  // undefined: still asking the server; null: the server has no default set.
+  const defaultLabel =
+    serverDefault === undefined
+      ? 'Default'
+      : `Default (${serverDefault ? labelOf(list, serverDefault) : 'none set on the server'})`;
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
       <select id={id} value={value} onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}>
-        <option value="">Default ({defaultName})</option>
+        <option value="">{defaultLabel}</option>
         {list.map((m) => {
           const why = disabled?.(m);
           return (
@@ -140,7 +151,27 @@ export function SettingsDialog({ open, settings, onSettings, onResetLayout, onCl
             disabled={(m) => (m.id.startsWith('typesafe:') && config && !config.keys.typesafe ? 'needs TYPESAFE_API_KEY' : null)}
             onChange={(judgeModel) => set({ judgeModel })}
           />
-          <p className="hint">Prices are per million tokens, input / output. A message costs a fraction of a cent.</p>
+          <div className="field">
+            <span id="thinking-label">Tutor thinking</span>
+            <div className="segmented" role="radiogroup" aria-labelledby="thinking-label">
+              {(['low', 'medium', 'high'] as const).map((t) => (
+                <label key={t} className={settings.thinking === t ? 'on' : ''}>
+                  <input
+                    type="radio"
+                    name="thinking"
+                    value={t}
+                    checked={settings.thinking === t}
+                    onChange={() => set({ thinking: t })}
+                  />
+                  {t[0].toUpperCase() + t.slice(1)}
+                </label>
+              ))}
+            </div>
+            <span className="hint block">{THINKING_NOTES[settings.thinking]}</span>
+          </div>
+          <p className="hint">
+            Prices are per million tokens, input / output. A message usually costs a fraction of a cent; more thinking costs more.
+          </p>
         </section>
 
         <section>

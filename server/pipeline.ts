@@ -4,7 +4,7 @@ import { modeById } from '../shared/clearance.ts';
 import type { ChatRequest, ChatResponse, Intercepted, JudgeCheck } from '../shared/api.ts';
 import { codeCheck } from './guard.ts';
 import type { Judge } from './judge.ts';
-import { extractMission } from './mission.ts';
+import { extractMissions } from './mission.ts';
 import { buildTutorMessages, ruleFor, type ModelMessage } from './messages.ts';
 import type { ClearanceRules } from './rules.ts';
 
@@ -37,7 +37,7 @@ export async function runGuarded(req: ChatRequest, deps: PipelineDeps): Promise<
 
     // In Challenge mode a mission block is allowed: it's a new exercise, not an answer.
     // It's taken out, and the rest of the reply is checked as usual.
-    const extracted = req.mode === 'challenge' ? extractMission(draft) : null;
+    const extracted = req.mode === 'challenge' ? extractMissions(draft) : null;
     const shown = extracted ? extracted.rest : draft;
 
     let step: Intercepted['step'] = 'code-check';
@@ -65,7 +65,8 @@ export async function runGuarded(req: ChatRequest, deps: PipelineDeps): Promise<
         attempts: attempt,
         intercepted,
         fallback: false,
-        mission: extracted?.mission ?? null,
+        missions: extracted?.missions ?? [],
+        missionsSkipped: extracted?.skipped ?? 0,
         debug: { tutorMessages: messages, judgeChecks },
       };
     }
@@ -82,7 +83,8 @@ export async function runGuarded(req: ChatRequest, deps: PipelineDeps): Promise<
     attempts: MAX_RETRIES + 1,
     intercepted,
     fallback: true,
-    mission: null,
+    missions: [],
+    missionsSkipped: 0,
     debug: { tutorMessages: messages, judgeChecks },
   };
 }

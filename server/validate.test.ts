@@ -53,4 +53,10 @@ describe('validateChatRequest', () => {
     expect(validateChatRequest({ ...good, models: { tutor: 42 } })).toMatchObject({ ok: false });
     expect(validateChatRequest({ ...good, models: 'z-ai/glm-5.3' })).toMatchObject({ ok: false });
   });
+
+  it('accepts low, medium or high thinking, defaulting to low', () => {
+    expect(validateChatRequest(good)).toMatchObject({ ok: true, value: { thinking: 'low' } });
+    expect(validateChatRequest({ ...good, thinking: 'high' })).toMatchObject({ ok: true, value: { thinking: 'high' } });
+    expect(validateChatRequest({ ...good, thinking: 'max' })).toMatchObject({ ok: false });
+  });
 });

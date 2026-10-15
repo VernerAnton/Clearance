@@ -1,4 +1,5 @@
 // User settings, saved in localStorage.
+import { THINKING_LEVELS, type Thinking } from '../../shared/api';
 import { isJudgeModel, isTutorModel } from '../../shared/models';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -17,6 +18,8 @@ export interface Settings {
   /** Model IDs picked in Settings; "" means the server's default. */
   tutorModel: string;
   judgeModel: string;
+  /** How hard the tutor thinks before answering. More: slower, costlier, more careful and varied. */
+  thinking: Thinking;
 }
 
 const STORAGE_KEY = 'clearance.settings.v1';
@@ -30,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   debugPanel: false,
   tutorModel: '',
   judgeModel: '',
+  thinking: 'low',
 };
 
 /** Read saved settings, keeping only values that make sense and defaulting the rest. */
@@ -53,6 +57,7 @@ export function parseSettings(raw: string | null): Settings {
     // A model that's no longer on the list falls back to the server's default.
     tutorModel: typeof data.tutorModel === 'string' && isTutorModel(data.tutorModel) ? data.tutorModel : '',
     judgeModel: typeof data.judgeModel === 'string' && isJudgeModel(data.judgeModel) ? data.judgeModel : '',
+    thinking: THINKING_LEVELS.includes(data.thinking as Thinking) ? (data.thinking as Thinking) : 'low',
   };
 }
 

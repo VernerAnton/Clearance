@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MAX_TOKENS, complete } from './openrouter.ts';
+import { BUDGET, MAX_TOKENS, complete } from './openrouter.ts';
 
 const env = { OPENROUTER_API_KEY: 'k' };
 const msgs = [{ role: 'user' as const, content: 'hi' }];
@@ -15,6 +15,15 @@ describe('complete', () => {
     expect(await complete(env, 'm', msgs)).toBe('Hello');
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
     expect(body).toMatchObject({ model: 'm', max_tokens: MAX_TOKENS, reasoning: { effort: 'low', exclude: true } });
+  });
+
+  it('gives more room to more thinking', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => reply('Hi'));
+    vi.stubGlobal('fetch', fetchMock);
+    await complete(env, 'm', msgs, 'high');
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body).toMatchObject({ max_tokens: BUDGET.high.maxTokens, reasoning: { effort: 'high', exclude: true } });
+    expect(BUDGET.high.maxTokens).toBeGreaterThan(BUDGET.medium.maxTokens);
   });
 
   it('retries once when the reply comes back empty', async () => {

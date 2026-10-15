@@ -11,6 +11,7 @@ describe('parseSettings', () => {
       debugPanel: false,
       tutorModel: '',
       judgeModel: '',
+      thinking: 'low',
     });
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
@@ -24,6 +25,7 @@ describe('parseSettings', () => {
       debugPanel: true,
       tutorModel: 'minimax/minimax-m3',
       judgeModel: 'typesafe:jev-latest',
+      thinking: 'high',
     };
     expect(parseSettings(JSON.stringify(saved))).toEqual(saved);
   });

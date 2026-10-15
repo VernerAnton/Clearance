@@ -18,7 +18,12 @@ export interface ChatRequest {
   lastRun: { output: string; endedWithError: boolean } | null;
   /** Models picked in Settings. Empty or missing means the server's default. */
   models?: { tutor?: string; judge?: string };
+  /** How hard the tutor thinks before answering (Settings). Missing means low. */
+  thinking?: Thinking;
 }
+
+export type Thinking = 'low' | 'medium' | 'high';
+export const THINKING_LEVELS: Thinking[] = ['low', 'medium', 'high'];
 
 /** A draft the guard blocked before the learner saw it. */
 export interface Intercepted {
@@ -48,7 +53,10 @@ export interface ChatResponse {
   intercepted: Intercepted[];
   /** True when every draft failed and the reply is the app's fixed message. */
   fallback: boolean;
-  mission: Mission | null;
+  /** New exercises to open in tabs (Challenge mode), at most LIMITS.missions. */
+  missions: Mission[];
+  /** Missions the tutor wrote beyond the limit, which were left out. */
+  missionsSkipped: number;
   /** For the "What the tutor receives" panel. */
   debug: {
     tutorMessages: { role: string; content: string }[];
@@ -70,4 +78,6 @@ export const LIMITS = {
   historyMessages: 30,
   historyContent: 12_000,
   title: 200,
+  /** Missions opened from one reply. Also stated in prompts/tutor-system.md. */
+  missions: 10,
 };
