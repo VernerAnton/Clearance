@@ -37,6 +37,8 @@ database_id = "2717fa27-7ba6-427e-b199-51121db4f5e5"
 
 # Cloudflare Access (Zero Trust login). Not secret: they identify your login page and
 # the Access application, so the Worker can check that a login token is really from
-# Cloudflare and for this app. Sync stays off until ACCESS_AUD is set.
+# Cloudflare and for this app. Without ACCESS_AUD, sync stays off.
 [vars]
 ACCESS_TEAM_DOMAIN = "aged-union-528e.cloudflareaccess.com"
+# The "clearance - Cloudflare Workers" Access application (Worker → Access tab → AUD tag).
+ACCESS_AUD = "e929ba52823dc9f8032464435a95a6f7b55d55dc403b6cb48a1d86e0c56a5657"

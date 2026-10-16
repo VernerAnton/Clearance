@@ -22,7 +22,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 - **Python:** Pyodide in a Web Worker, self-hosted from this site (not a CDN).
 - **SQL:** sql.js (SQLite in WebAssembly), self-hosted.
 - **Backend:** a Cloudflare Worker (`server/worker.ts`) that answers `/api/*` and serves the built site as static assets. Model calls go through OpenRouter's OpenAI-compatible chat API. (The spec first said Pages Functions; the project was created as a Worker, so the app runs as one.)
-- **Hosting:** local first (`npm start`, i.e. `wrangler dev`), then the Cloudflare Worker `clearance`, deployed by Workers Builds on every push to the working branch. Cloudflare Access is postponed. Don't touch other projects in the Cloudflare account.
+- **Hosting:** local first (`npm start`, i.e. `wrangler dev`), then the Cloudflare Worker `clearance`, deployed by Workers Builds on every push to the working branch. The whole site is behind Cloudflare Access (Worker → Access tab: all traffic, Cloudflare account members, 7-day sessions). Don't touch other projects in the Cloudflare account.
 - **Tests:** Vitest for pure logic (guard, message building, mission parsing, judge parsing).
 
 ## Rules that must not be broken
