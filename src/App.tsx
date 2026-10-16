@@ -7,6 +7,7 @@ import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
 import { SideBar } from './components/SideBar';
 import { useSidePanel } from './hooks/useSidePanel';
+import { useCloudSync } from './hooks/useCloudSync';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
@@ -54,6 +55,8 @@ export function App() {
   const { tabs, activeId } = tabsState;
   const active = tabs.find((t) => t.id === activeId)!;
   const runner = useCodeRunner();
+  // Tabs and settings follow you between devices when you're logged in (Cloudflare Access).
+  const sync = useCloudSync(tabsState, setTabsState, settings, setSettings);
   // Registers the service worker and offers a reload when a newer build is deployed.
   const update = useAppUpdate();
   const { clearErrorLine } = runner;
@@ -272,6 +275,7 @@ export function App() {
         onSettings={setSettings}
         onResetLayout={() => setLayout({ ...DEFAULT_LAYOUT })}
         onClose={() => setSettingsOpen(false)}
+        sync={sync}
       />
       {!side && (
         <Splitter

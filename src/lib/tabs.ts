@@ -74,6 +74,13 @@ FROM stories;
   return { tabs, activeId: tabs[0].id };
 }
 
+/** True when these are the untouched starter tabs (a fresh device), whatever their ids. */
+export function isStarterOnly(tabs: Tab[]): boolean {
+  const starters = defaultTabs().tabs;
+  const key = (t: Tab) => JSON.stringify([t.title, t.lang, t.code, t.fromMission, t.task]);
+  return tabs.length === starters.length && tabs.every((t, i) => key(t) === key(starters[i]));
+}
+
 /** Name for a new empty tab: scratch1.py, scratch2.py, ... or query1.sql, ... */
 export function nextScratchTitle(tabs: Tab[], lang: Lang): string {
   const base = lang === 'sql' ? 'query' : 'scratch';

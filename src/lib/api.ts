@@ -13,7 +13,9 @@ export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
       body: JSON.stringify(req),
     });
   } catch {
-    throw new ChatFailed("Couldn't reach the app's server. Check your connection and try again.");
+    throw new ChatFailed(
+      "Couldn't reach the app's server. Check your connection and try again. If you've been away a while, your login may have expired: reload the page to sign in again.",
+    );
   }
 
   let data: ChatResponse | ChatError | null = null;

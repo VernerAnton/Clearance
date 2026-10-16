@@ -27,3 +27,16 @@ run_worker_first = ["/api/*"]
 
 [dev]
 port = 8788
+
+# Sync between devices: tabs and settings per logged-in email (server/sync.ts).
+# A database of its own, created for Clearance; the account's other database isn't used.
+[[d1_databases]]
+binding = "DB"
+database_name = "clearance"
+database_id = "2717fa27-7ba6-427e-b199-51121db4f5e5"
+
+# Cloudflare Access (Zero Trust login). Not secret: they identify your login page and
+# the Access application, so the Worker can check that a login token is really from
+# Cloudflare and for this app. Sync stays off until ACCESS_AUD is set.
+[vars]
+ACCESS_TEAM_DOMAIN = "aged-union-528e.cloudflareaccess.com"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultTabs, nextScratchTitle, parseSavedTabs, uniqueTitle, type Tab } from './tabs';
+import { defaultTabs, isStarterOnly, nextScratchTitle, parseSavedTabs, uniqueTitle, type Tab } from './tabs';
 
 const tab = (over: Partial<Tab> = {}): Tab => ({
   id: 'a',
@@ -16,6 +16,15 @@ describe('defaultTabs', () => {
     const s = defaultTabs();
     expect(s.tabs.map((t) => t.lang)).toEqual(['python', 'sql']);
     expect(s.activeId).toBe(s.tabs[0].id);
+  });
+});
+
+describe('isStarterOnly', () => {
+  it('spots untouched starter tabs, and not edited ones', () => {
+    const s = defaultTabs();
+    expect(isStarterOnly(s.tabs)).toBe(true);
+    expect(isStarterOnly([{ ...s.tabs[0], code: 'x' }, s.tabs[1]])).toBe(false);
+    expect(isStarterOnly(s.tabs.slice(0, 1))).toBe(false);
   });
 });
 

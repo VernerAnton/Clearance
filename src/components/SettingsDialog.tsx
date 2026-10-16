@@ -3,6 +3,7 @@ import { JUDGE_MODELS, TUTOR_MODELS, type ModelOption, type ServerConfig } from 
 import { fetchServerConfig } from '../lib/api';
 import type { Thinking } from '../../shared/api';
 import type { LayoutMode, Settings, Theme } from '../lib/settings';
+import type { SyncStatus } from '../hooks/useCloudSync';
 
 interface Props {
   open: boolean;
@@ -10,6 +11,7 @@ interface Props {
   onSettings: (settings: Settings) => void;
   onResetLayout: () => void;
   onClose: () => void;
+  sync: SyncStatus;
 }
 
 const EDITOR_OPTIONS = [
@@ -64,7 +66,22 @@ function ModelPicker(props: {
 }
 
 /** The settings popup: editor, appearance, models and developer options. */
-export function SettingsDialog({ open, settings, onSettings, onResetLayout, onClose }: Props) {
+function syncText(sync: SyncStatus): string {
+  switch (sync.state) {
+    case 'checking':
+      return 'Checking…';
+    case 'off':
+      return 'Off: your tabs and settings are saved in this browser only. Sync turns on when the app is behind your Cloudflare Access login.';
+    case 'syncing':
+      return `On for ${sync.email}. Syncing…`;
+    case 'synced':
+      return `On for ${sync.email}. Your tabs (code and tasks) and settings follow you between devices; the layout stays per device. Last synced ${sync.at ? new Date(sync.at).toLocaleTimeString() : 'just now'}.`;
+    case 'error':
+      return sync.message;
+  }
+}
+
+export function SettingsDialog({ open, settings, onSettings, onResetLayout, onClose, sync }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [config, setConfig] = useState<ServerConfig | null>(null);
 
@@ -187,6 +204,13 @@ export function SettingsDialog({ open, settings, onSettings, onResetLayout, onCl
           </div>
           <p className="hint">
             Prices are per million tokens, input / output. A message usually costs a fraction of a cent; more thinking costs more.
+          </p>
+        </section>
+
+        <section>
+          <h3>Sync between devices</h3>
+          <p className="hint block" role="status">
+            {syncText(sync)}
           </p>
         </section>
 

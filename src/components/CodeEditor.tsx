@@ -257,6 +257,15 @@ export function CodeEditor({ tabId, lang, code, helpers, errorLine, focusTick, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabId]);
 
+  // The open tab's code changed from outside the editor (sync from another device):
+  // show the new code. Typing never lands here, since then the editor already has it.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view || tabIdRef.current !== tabId) return;
+    const doc = view.state.doc.toString();
+    if (doc !== code) view.dispatch({ changes: { from: 0, to: doc.length, insert: code } });
+  }, [code, tabId]);
+
   // Turning a setting on or off.
   const { liveLinting, autocomplete, closeBrackets: autoClose } = helpers;
   useEffect(() => {
