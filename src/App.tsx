@@ -14,6 +14,8 @@ import { UpdatePrompt } from './components/UpdatePrompt';
 import { ChatFailed, sendChat } from './lib/api';
 import { LIMITS as API_LIMITS, type HistoryMessage } from '../shared/api';
 import type { DebugInfo } from './components/Inspector';
+// What the Review button sends. Your chat shows just "Review".
+import REVIEW_PROMPT from '../prompts/review-button.md?raw';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
@@ -114,12 +116,13 @@ export function App() {
   /** The chat so far, as the tutor sees it: no welcome text, no failed messages, no errors. */
   const historyFor = (msgs: ChatMessage[]): HistoryMessage[] =>
     msgs.flatMap((msg): HistoryMessage[] => {
-      if (msg.role === 'user' && !msg.failed) return [{ role: 'user', content: msg.text }];
+      if (msg.role === 'user' && !msg.failed) return [{ role: 'user', content: msg.prompt ?? msg.text }];
       if (msg.role === 'tutor' && msg.history !== undefined) return [{ role: 'assistant', content: msg.history }];
       return [];
     });
 
-  const send = async (text: string) => {
+  /** `prompt` is what the tutor receives when it differs from what the chat shows (the Review button). */
+  const send = async (text: string, prompt?: string) => {
     if (waiting) return;
     const m = modeById(mode);
     const sentLevel = level;
@@ -129,6 +132,7 @@ export function App() {
       id: ++msgSeq,
       role: 'user',
       text,
+      prompt,
       attached: tab.title + (lastRun ? ' + last output' : ''),
     };
     const history = historyFor(messages);
@@ -147,7 +151,7 @@ export function App() {
       const res = await sendChat({
         mode,
         level: m.hasLevels ? sentLevel : 1,
-        message: text,
+        message: prompt ?? text,
         history,
         activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
         lastRun,
@@ -289,6 +293,8 @@ export function App() {
         debugPanel={settings.debugPanel}
         debugInfo={debugInfo}
         onSend={send}
+        onReview={() => send('Review', REVIEW_PROMPT.trim())}
+        canReview={active.code.trim() !== ''}
       />
     </div>
   );

@@ -8,6 +8,8 @@ export type ChatMessage =
       id: number;
       role: 'user';
       text: string;
+      /** What the tutor got instead of `text`, if different (the Review button sends a fuller sentence). */
+      prompt?: string;
       /** What the app sent along, e.g. "Filter positives + last output". */
       attached: string;
       /** The request failed, so this message is left out of the history sent to the tutor. */
@@ -35,10 +37,14 @@ interface Props {
   debugPanel: boolean;
   debugInfo: DebugInfo | null;
   onSend: (text: string) => void;
+  /** The Review button: asks the tutor to look at the current tab, without typing. */
+  onReview: () => void;
+  /** False while the current tab is empty: nothing to review. */
+  canReview: boolean;
 }
 
 export function Chat(props: Props) {
-  const { mode, level, activeTitle, hasLastRun, messages, waiting, debugPanel, debugInfo, onSend } = props;
+  const { mode, level, activeTitle, hasLastRun, messages, waiting, debugPanel, debugInfo, onSend, onReview, canReview } = props;
   const [draft, setDraft] = useState('');
   const [inspecting, setInspecting] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
@@ -128,9 +134,21 @@ export function Chat(props: Props) {
             onKeyDown={onKey}
             placeholder="Ask about your code. Enter sends, Shift+Enter adds a line."
           />
-          <button className="btn primary" type="submit" disabled={waiting}>
-            Send
-          </button>
+          <div className="send-actions">
+            <button className="btn primary" type="submit" disabled={waiting}>
+              Send
+            </button>
+            {/* Leaves whatever you've typed in the box alone. */}
+            <button
+              className="btn review-btn"
+              type="button"
+              disabled={waiting || !canReview}
+              onClick={onReview}
+              title="Ask the tutor to review your current tab and its last output"
+            >
+              Review
+            </button>
+          </div>
         </div>
         <span className="attachnote">
           Sent with your message: “{activeTitle}” and {hasLastRun ? 'its last output' : 'no output yet (press Run first)'}.
