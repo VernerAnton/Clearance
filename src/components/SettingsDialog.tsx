@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { JUDGE_MODELS, TUTOR_MODELS, type ModelOption, type ServerConfig } from '../../shared/models';
 import { fetchServerConfig } from '../lib/api';
 import type { Thinking } from '../../shared/api';
-import type { Settings, Theme } from '../lib/settings';
+import type { LayoutMode, Settings, Theme } from '../lib/settings';
 
 interface Props {
   open: boolean;
@@ -121,6 +121,22 @@ export function SettingsDialog({ open, settings, onSettings, onResetLayout, onCl
               <option value="light">Light</option>
               <option value="dark">Dark</option>
             </select>
+          </div>
+          <div className="field">
+            <label htmlFor="layout-mode">Layout</label>
+            <select
+              id="layout-mode"
+              value={settings.layoutMode}
+              onChange={(e) => set({ layoutMode: e.target.value as LayoutMode })}
+            >
+              <option value="auto">Automatic: side panel when the window is narrow</option>
+              <option value="full">Full: three columns</option>
+              <option value="side">Side panel: code and chat stacked</option>
+            </select>
+            <span className="hint block">
+              The side panel is for using Clearance next to a course site. Whichever part you click, code or chat, gets
+              most of the height.
+            </span>
           </div>
           <div className="row">
             <button type="button" className="btn small" onClick={onResetLayout}>

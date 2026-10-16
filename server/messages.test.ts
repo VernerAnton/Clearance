@@ -48,6 +48,19 @@ describe('contextHeader', () => {
     expect(explain).not.toContain('Clearance 4');
   });
 
+  it('adds the pasted exercise, fenced, before the code', () => {
+    const header = contextHeader(
+      request({ activeTab: { title: 'Ex', lang: 'python', code: 'x', fromMission: false, task: 'Sort the list.\n```\nhint\n```' } }),
+      rules,
+    );
+    expect(header).toContain('[Open tab: Ex (python)]\n[Exercise the learner is working on, pasted by them]\n````text\nSort the list.');
+    expect(header.indexOf('[Exercise')).toBeLessThan(header.indexOf('```python'));
+  });
+
+  it('leaves the exercise out when the Task box is empty', () => {
+    expect(contextHeader(request(), rules)).not.toContain('[Exercise');
+  });
+
   it('marks an empty output', () => {
     expect(contextHeader(request({ lastRun: { output: '', endedWithError: false } }), rules)).toContain(
       '[Last run output]\n(no output)',

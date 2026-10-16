@@ -7,6 +7,7 @@ const tab = (over: Partial<Tab> = {}): Tab => ({
   lang: 'python',
   code: 'print(1)',
   fromMission: false,
+  task: '',
   ...over,
 });
 
@@ -31,6 +32,11 @@ describe('parseSavedTabs', () => {
   it('round-trips saved state', () => {
     const s = { tabs: [tab(), tab({ id: 'b', lang: 'sql', title: 'q.sql' })], activeId: 'b' };
     expect(parseSavedTabs(JSON.stringify(s))).toEqual(s);
+  });
+
+  it('gives tabs saved before the Task box an empty task', () => {
+    const { task: _, ...old } = tab();
+    expect(parseSavedTabs(JSON.stringify({ tabs: [old], activeId: 'a' }))).toEqual({ tabs: [tab()], activeId: 'a' });
   });
 
   it('returns null for missing, broken or empty data', () => {

@@ -3,6 +3,9 @@ import { THINKING_LEVELS, type Thinking } from '../../shared/api';
 import { isJudgeModel, isTutorModel } from '../../shared/models';
 
 export type Theme = 'system' | 'light' | 'dark';
+/** Auto: the side-panel layout when the window is narrow. Full / Side panel: always that one. */
+export type LayoutMode = 'auto' | 'full' | 'side';
+export const LAYOUT_MODES: LayoutMode[] = ['auto', 'full', 'side'];
 
 export interface Settings {
   /** Underline syntax errors while typing. */
@@ -20,6 +23,8 @@ export interface Settings {
   judgeModel: string;
   /** How hard the tutor thinks before answering. More: slower, costlier, more careful and varied. */
   thinking: Thinking;
+  /** Full three-column layout, or the narrow side-panel layout for next to a course site. */
+  layoutMode: LayoutMode;
 }
 
 const STORAGE_KEY = 'clearance.settings.v1';
@@ -34,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tutorModel: '',
   judgeModel: '',
   thinking: 'low',
+  layoutMode: 'auto',
 };
 
 /** Read saved settings, keeping only values that make sense and defaulting the rest. */
@@ -58,6 +64,7 @@ export function parseSettings(raw: string | null): Settings {
     tutorModel: typeof data.tutorModel === 'string' && isTutorModel(data.tutorModel) ? data.tutorModel : '',
     judgeModel: typeof data.judgeModel === 'string' && isJudgeModel(data.judgeModel) ? data.judgeModel : '',
     thinking: THINKING_LEVELS.includes(data.thinking as Thinking) ? (data.thinking as Thinking) : 'low',
+    layoutMode: LAYOUT_MODES.includes(data.layoutMode as LayoutMode) ? (data.layoutMode as LayoutMode) : 'auto',
   };
 }
 

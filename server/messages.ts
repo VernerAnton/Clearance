@@ -26,6 +26,11 @@ export function contextHeader(req: ChatRequest, rules: ClearanceRules): string {
   const tab = req.activeTab;
   const lines = [`[Mode: ${mode.label} | ${ruleFor(req, rules)}]`];
   lines.push(`[Open tab: ${tab.title} (${tab.lang}${tab.fromMission ? ', mission' : ''})]`);
+  if (tab.task) {
+    // Fenced like the code, so pasted text can't pose as an app header.
+    const taskFence = fenceFor(tab.task);
+    lines.push(`[Exercise the learner is working on, pasted by them]\n${taskFence}text\n${tab.task}\n${taskFence}`);
+  }
   const fence = fenceFor(tab.code);
   lines.push(`${fence}${tab.lang}\n${tab.code.replace(/\n+$/, '')}\n${fence}`);
   if (req.lastRun) {

@@ -192,6 +192,18 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .editor-host .cm-editor { height: 100%; }
 .owner { position: absolute; right: 14px; top: 8px; font-size: 0.75rem; color: var(--ed-dim); pointer-events: none; }
 
+/* The Task box: the exercise text for this tab, folded to one line until you open it. */
+.taskbox { background: var(--ed-gutter); color: var(--ed-ink); border-bottom: 1px solid var(--ed-line); flex-shrink: 0; }
+.task-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; background: none; border: 0; padding: 5px 12px; text-align: left; font-size: 0.84rem; }
+.task-label { font-weight: 700; }
+.task-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ed-ink); }
+.task-summary.empty { color: var(--ed-dim); font-style: italic; }
+.task-caret { color: var(--ed-dim); }
+.taskbox textarea {
+  display: block; width: calc(100% - 24px); margin: 0 12px 8px; min-height: 5.5em; max-height: 40vh; resize: vertical;
+  background: var(--ed-bg); color: var(--ed-ink); border: 1px solid var(--ed-line); border-radius: 6px; padding: 6px 8px; font-size: 0.86rem;
+}
+
 .console { position: relative; display: flex; flex-direction: column; flex: 0 1 auto; min-height: 90px; }
 .runbar { display: flex; align-items: center; gap: 10px; background: var(--ed-gutter); color: var(--ed-ink); padding: 7px 12px; border-top: 1px solid var(--ed-line); flex-wrap: wrap; flex-shrink: 0; }
 .run { background: var(--ed-mint); color: #0b2a1e; border: 0; border-radius: 6px; padding: 5px 14px; font-weight: 700; }
@@ -200,6 +212,8 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .runbar kbd { font-family: var(--font-code); font-size: 0.72rem; border: 1px solid var(--ed-line); border-radius: 4px; padding: 0 4px; }
 .clearout { background: none; border: 0; color: var(--ed-dim); font-size: 0.82rem; text-decoration: underline; }
 .clearout:disabled { visibility: hidden; }
+.copy { background: transparent; color: var(--ed-ink); border: 1px solid var(--ed-line); border-radius: 6px; padding: 3px 10px; font-size: 0.82rem; }
+.copy:hover:not(:disabled) { border-color: var(--ed-dim); }
 
 /* Fallback when input() can't pause: lines typed before Run. */
 .stdin-box { background: var(--ed-gutter); color: var(--ed-ink); padding: 6px 12px 8px; border-top: 1px solid var(--ed-line); font-size: 0.82rem; flex-shrink: 0; }
@@ -298,3 +312,76 @@ pre.code-block .lang { position: absolute; top: 5px; right: 10px; font-size: 0.7
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Side panel: code and chat stacked, for next to a course site ----------
+   Comes last so it wins over the narrow-screen rules above. Whichever pane you're
+   using (data-pane="big") gets about 80% of the height; the swap slides. */
+.app.side { display: flex; flex-direction: column; height: 100%; min-height: 0; max-width: none; }
+.app.side .work, .app.side .chat {
+  flex: 1 1 0; min-height: 0; border-right: 0; grid-column: auto;
+  transition: flex-grow 0.25s ease; position: relative;
+}
+.app.side [data-pane='big'] { flex-grow: 4; }
+.app.side [data-pane='small'] { flex-grow: 1; }
+.app.side .chat { border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .app.side .work, .app.side .chat { transition: none; } }
+
+/* The top bar with the two notches. */
+.sidebar { display: flex; align-items: flex-start; gap: 6px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--line); flex-shrink: 0; position: relative; z-index: 15; }
+.sidebar .btn.small { margin-top: 6px; }
+.sidebar-note { margin: 0; align-self: center; font-size: 0.78rem; font-weight: 700; color: var(--mint); white-space: nowrap; }
+.sidebar-version { margin-left: auto; align-self: center; font-size: 0.75rem; font-weight: 700; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.notch { position: relative; }
+/* A tab hanging from the top edge. */
+.notch-face {
+  display: flex; align-items: center; gap: 4px; min-width: 58px; justify-content: center;
+  background: var(--paper); border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px;
+  padding: 6px 10px 7px; font-weight: 700;
+}
+.notch-face:hover, .notch-face[aria-expanded='true'] { border-color: var(--neon); }
+.notch-emoji { font-size: 1.2rem; line-height: 1; }
+.notch-level { font-family: var(--font-code); font-size: 1rem; color: var(--neon-ink); background: var(--neon); border-radius: 5px; padding: 0 6px; }
+.notch-caret { font-size: 0.7rem; color: var(--ink-soft); }
+.notch-face.flash { animation: notch-flash 0.9s ease; }
+@keyframes notch-flash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--neon-glow), 0 0 16px var(--neon-glow); } }
+@media (prefers-reduced-motion: reduce) { .notch-face.flash { animation: none; } }
+.notch-menu {
+  position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 4px; width: max-content; max-width: calc(100vw - 20px);
+  display: flex; flex-direction: column; gap: 2px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+/* Fills the gap between notch and menu, so the mouse can cross it without the menu closing. */
+.notch-menu::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; height: 6px; }
+.notch-menu button { display: flex; align-items: center; gap: 10px; text-align: left; background: none; border: 1.5px solid transparent; border-radius: 8px; padding: 6px 10px 6px 8px; }
+.notch-menu button:hover { background: var(--grid); }
+.notch-menu button[aria-checked='true'] { border-color: var(--neon); }
+.notch-item-icon { width: 26px; text-align: center; font-size: 1.1rem; flex-shrink: 0; }
+.notch-num { height: 26px; display: grid; place-items: center; border: 1.5px solid currentColor; border-radius: 6px; font-family: var(--font-code); font-size: 0.9rem; font-weight: 700; }
+.notch-menu button[aria-checked='true'] .notch-num { background: var(--neon); color: var(--neon-ink); border-color: var(--neon); }
+.notch-item-text { display: flex; flex-direction: column; line-height: 1.25; }
+.notch-item-text small { color: var(--ink-soft); font-size: 0.78rem; }
+.notch-empty { margin: 4px 8px; font-size: 0.85rem; color: var(--ink-soft); }
+
+/* Panes: no rail, no column dividers; tabs scroll sideways instead of wrapping. */
+.app.side .tabs { flex-wrap: nowrap; }
+.app.side .newtab { margin-left: 8px; padding-top: 0; }
+.app.side .tabhint, .app.side .keyhint { display: none; }
+.app.side .chat .topbar { display: none; }
+/* Small code pane: tabs, Run and the end of the output. The editor comes back when you click in. */
+.app.side .work[data-pane='small'] .editor,
+.app.side .work[data-pane='small'] .taskbox,
+.app.side .work[data-pane='small'] .console > .splitter { display: none; }
+.app.side .work[data-pane='small'] .console { height: auto !important; flex: 1 1 0; min-height: 0; }
+.app.side .work[data-pane='small'] .output { flex: 1 1 0; }
+/* The output never pushes the editor out of a big pane. */
+.app.side .work[data-pane='big'] .console { max-height: 30%; }
+/* The 🎯 on the tab already says it's a mission; at this width the label would cover code. */
+.app.side .owner { display: none; }
+/* Small chat pane: the end of the conversation and the message box. */
+.app.side .chat[data-pane='small'] .log { padding-top: 8px; padding-bottom: 8px; }
+.unread {
+  position: absolute; top: 8px; right: 14px; z-index: 2; font-size: 0.75rem; font-weight: 700;
+  background: var(--neon); color: var(--neon-ink); border-radius: 99px; padding: 1px 10px; box-shadow: 0 0 10px var(--neon-glow);
+}
+.app.side .update-prompt { top: 52px; bottom: auto; left: 10px; right: 10px; width: auto; }
+

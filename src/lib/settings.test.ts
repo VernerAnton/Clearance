@@ -12,6 +12,7 @@ describe('parseSettings', () => {
       tutorModel: '',
       judgeModel: '',
       thinking: 'low',
+      layoutMode: 'auto',
     });
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
@@ -26,13 +27,14 @@ describe('parseSettings', () => {
       tutorModel: 'minimax/minimax-m3',
       judgeModel: 'typesafe:jev-latest',
       thinking: 'high',
+      layoutMode: 'side',
     };
     expect(parseSettings(JSON.stringify(saved))).toEqual(saved);
   });
 
   it('fills in settings added after the save, and ignores junk', () => {
     expect(parseSettings('{"liveLinting": true}')).toEqual({ ...DEFAULT_SETTINGS, liveLinting: true });
-    expect(parseSettings('{"autocomplete": "yes", "theme": "purple"}')).toEqual(DEFAULT_SETTINGS);
+    expect(parseSettings('{"autocomplete": "yes", "theme": "purple", "layoutMode": "tiny"}')).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('not json')).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('null')).toEqual(DEFAULT_SETTINGS);
   });

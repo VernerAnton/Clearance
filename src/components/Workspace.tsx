@@ -5,6 +5,8 @@ import type { SqlTable } from '../sql/protocol';
 import type { Lang, Tab } from '../lib/tabs';
 import { CodeEditor, type EditorHelpers } from './CodeEditor';
 import { Splitter } from './Splitter';
+import { paneAttrs, type PaneProps } from './pane';
+import { LIMITS as API_LIMITS } from '../../shared/api';
 
 export type RunPhase = 'loading' | 'running' | 'waiting';
 
@@ -28,6 +30,10 @@ interface Props {
   onClose: (id: string) => void;
   onNew: (lang: Lang) => void;
   onCode: (code: string) => void;
+  /** The Task box changed. */
+  onTask: (task: string) => void;
+  /** Set in the side-panel layout. */
+  pane?: PaneProps;
   onRun: () => void;
   onStop: () => void;
   onInput: (text: string) => void;
@@ -96,15 +102,60 @@ function InlineInput({ onSubmit }: { onSubmit: (text: string) => void }) {
   );
 }
 
+/** The exercise text for this tab. Sent to the tutor with every message; folds to one line. */
+function TaskBox({ task, onTask }: { task: string; onTask: (task: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const firstLine = task.trim().split('\n')[0];
+  return (
+    <div className={`taskbox${open ? ' open' : ''}`}>
+      <button type="button" className="task-toggle" aria-expanded={open} aria-controls="task-text" onClick={() => setOpen((v) => !v)}>
+        <span aria-hidden="true">📝</span>
+        <span className="task-label">Task</span>
+        <span className={`task-summary${firstLine ? '' : ' empty'}`}>
+          {firstLine || 'Paste the exercise instructions (optional)'}
+        </span>
+        <span className="task-caret" aria-hidden="true">
+          {open ? '▴' : '▾'}
+        </span>
+      </button>
+      {open && (
+        <textarea
+          id="task-text"
+          aria-label="Exercise instructions"
+          value={task}
+          maxLength={API_LIMITS.task}
+          onChange={(e) => onTask(e.target.value)}
+          placeholder="Paste the exercise's instructions from your course. The tutor reads them with every message, so it knows what your code is supposed to do."
+        />
+      )}
+    </div>
+  );
+}
+
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function Workspace(props: Props) {
-  const { tabs, activeId, output, errorLine, run, helpers, focusTick, onSelect, onClose, onNew, onCode } = props;
+  const { tabs, activeId, output, errorLine, run, helpers, focusTick, onSelect, onClose, onNew, onCode, onTask, pane } = props;
   const { onRun, onStop, onInput, onClearOutput, interactiveInput, stdinText, onStdinText } = props;
   const { outputHeight, onOutputHeight, onOutputReset } = props;
   const waitingHere = run?.tabId === activeId && run.phase === 'waiting';
   const active = tabs.find((t) => t.id === activeId)!;
   const outRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
+
+  // Copies the whole tab, e.g. to paste into a course site.
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(active.code);
+      setCopied(true);
+      window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      window.alert("Couldn't copy: the browser blocked the clipboard. Select the code and press Ctrl+C instead.");
+    }
+  };
 
   const tabsRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -139,7 +190,7 @@ export function Workspace(props: Props) {
   }, [output, waitingHere]);
 
   return (
-    <section className="work" aria-label="Code workspace">
+    <section className="work" aria-label="Code workspace" {...paneAttrs(pane)}>
       <div className="tabs">
         <div className="tablist" ref={tabsRef} onWheel={onTabsWheel} role="tablist" aria-label="Open files">
           {tabs.map((t) => (
@@ -192,6 +243,8 @@ export function Workspace(props: Props) {
         </div>
       </div>
 
+      <TaskBox key={active.id} task={active.task} onTask={onTask} />
+
       <div className="editor" ref={editorRef} role="tabpanel" aria-label={active.title}>
         <CodeEditor
           tabId={active.id}
@@ -234,11 +287,16 @@ export function Workspace(props: Props) {
               </>
             ) : (
               <>
-                <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
+                <span className="keyhint">
+                  <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> runs the tab
+                </span>
                 <span className="tabhint"> · Esc then Tab leaves the editor</span>
               </>
             )}
           </span>
+          <button type="button" className="copy" onClick={copyCode} disabled={!active.code}>
+            {copied ? 'Copied ✓' : 'Copy code'}
+          </button>
           <button type="button" className="clearout" onClick={onClearOutput} disabled={run?.tabId === activeId}>
             Clear output
           </button>

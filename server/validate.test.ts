@@ -15,6 +15,14 @@ describe('validateChatRequest', () => {
     expect(validateChatRequest(good)).toMatchObject({ ok: true, value: { mode: 'debug', level: 2 } });
   });
 
+  it('keeps the Task box text, trimmed, and rejects a task that is not text or too long', () => {
+    const tab = (task: unknown) => ({ ...good, activeTab: { ...good.activeTab, task } });
+    expect(validateChatRequest(tab('  Sort it.  '))).toMatchObject({ ok: true, value: { activeTab: { task: 'Sort it.' } } });
+    expect(validateChatRequest(good)).toMatchObject({ ok: true, value: { activeTab: { task: '' } } });
+    expect(validateChatRequest(tab(42))).toMatchObject({ ok: false });
+    expect(validateChatRequest(tab('x'.repeat(6001)))).toMatchObject({ ok: false });
+  });
+
   it('rejects unknown modes and levels outside 1-5', () => {
     expect(validateChatRequest({ ...good, mode: 'cheat' })).toMatchObject({ ok: false });
     for (const level of [0, 6, 2.5, '3', null]) {

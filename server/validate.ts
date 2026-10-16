@@ -30,11 +30,15 @@ export function validateChatRequest(body: unknown): Validated {
   }
 
   if (!isObject(activeTab)) return fail('The open tab is missing.');
-  const { title, lang, code, fromMission } = activeTab;
+  const { title, lang, code, fromMission, task } = activeTab;
   if (typeof title !== 'string' || (lang !== 'python' && lang !== 'sql') || typeof code !== 'string') {
     return fail('The open tab needs a title, a language (python or sql) and code.');
   }
   if (code.length > LIMITS.code) return fail(`The open tab has more than ${LIMITS.code} characters of code.`);
+  if (task !== undefined && typeof task !== 'string') return fail('The task must be text.');
+  if (typeof task === 'string' && task.length > LIMITS.task) {
+    return fail(`The task has more than ${LIMITS.task} characters.`);
+  }
 
   let cleanRun: ChatRequest['lastRun'] = null;
   if (lastRun !== null && lastRun !== undefined) {
@@ -73,7 +77,13 @@ export function validateChatRequest(body: unknown): Validated {
       message,
       // Only the most recent part of a long chat is sent on, to keep requests small.
       history: cleanHistory.slice(-LIMITS.historyMessages),
-      activeTab: { title: title.slice(0, LIMITS.title), lang, code, fromMission: fromMission === true },
+      activeTab: {
+        title: title.slice(0, LIMITS.title),
+        lang,
+        code,
+        fromMission: fromMission === true,
+        task: typeof task === 'string' ? task.trim() : '',
+      },
       lastRun: cleanRun,
     },
   };

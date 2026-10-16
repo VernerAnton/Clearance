@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { levelInfo, modeById, type Level, type ModeId } from '../../shared/clearance';
 import { Inspector, type DebugInfo } from './Inspector';
 import { Markdown } from './Markdown';
+import { paneAttrs, type PaneProps } from './pane';
 
 export type ChatMessage =
   | {
@@ -41,10 +42,14 @@ interface Props {
   onReview: () => void;
   /** False while the current tab is empty: nothing to review. */
   canReview: boolean;
+  /** Set in the side-panel layout. */
+  pane?: PaneProps;
+  /** A reply arrived while the chat was the small pane. */
+  unread?: boolean;
 }
 
 export function Chat(props: Props) {
-  const { mode, level, activeTitle, hasLastRun, messages, waiting, debugPanel, debugInfo, onSend, onReview, canReview } = props;
+  const { mode, level, activeTitle, hasLastRun, messages, waiting, debugPanel, debugInfo, onSend, onReview, canReview, pane, unread } = props;
   const [draft, setDraft] = useState('');
   const [inspecting, setInspecting] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
@@ -70,7 +75,12 @@ export function Chat(props: Props) {
   };
 
   return (
-    <section className="chat" aria-label="Tutor chat">
+    <section className="chat" aria-label="Tutor chat" {...paneAttrs(pane)}>
+      {unread && (
+        <span className="unread" role="status">
+          New reply
+        </span>
+      )}
       <div className="topbar">
         <div className="status">
           <span aria-hidden="true">{m.icon}</span> {m.label}

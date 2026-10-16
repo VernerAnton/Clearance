@@ -8,6 +8,8 @@ export interface Tab {
   lang: Lang;
   code: string;
   fromMission: boolean;
+  /** The exercise text pasted into the Task box; sent to the tutor. Empty when unused. */
+  task: string;
 }
 
 export interface TabsState {
@@ -28,6 +30,7 @@ export function defaultTabs(): TabsState {
       title: 'Filter positives',
       lang: 'python',
       fromMission: true,
+      task: '',
       code: `# Mission: Filter positives
 # Write a function filter_positives(nums) that returns
 # all numbers greater than 0, in their original order.
@@ -51,6 +54,7 @@ print(filter_positives(nums))
       title: 'practice.sql',
       lang: 'sql',
       fromMission: false,
+      task: '',
       code: `CREATE TABLE stories (title TEXT, url TEXT);
 INSERT INTO stories VALUES
   ('Rust tips', 'https://github.com/x'),
@@ -95,7 +99,8 @@ function isTab(x: unknown): x is Tab {
     typeof t.title === 'string' &&
     (t.lang === 'python' || t.lang === 'sql') &&
     typeof t.code === 'string' &&
-    typeof t.fromMission === 'boolean'
+    typeof t.fromMission === 'boolean' &&
+    (t.task === undefined || typeof t.task === 'string')
   );
 }
 
@@ -114,7 +119,8 @@ export function parseSavedTabs(raw: string | null): TabsState | null {
   if (!data || typeof data !== 'object') return null;
   const { tabs, activeId } = data as Record<string, unknown>;
   if (!Array.isArray(tabs)) return null;
-  const valid = tabs.filter(isTab);
+  // Tabs saved before the Task box existed have no task: give them an empty one.
+  const valid = tabs.filter(isTab).map((t) => ({ ...t, task: t.task ?? '' }));
   if (valid.length === 0) return null;
   const active = valid.some((t) => t.id === activeId) ? (activeId as string) : valid[0].id;
   return { tabs: valid, activeId: active };

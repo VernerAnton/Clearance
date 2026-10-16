@@ -14,7 +14,8 @@ export interface ChatRequest {
   message: string;
   /** The chat since the last "New mission", without context headers. */
   history: HistoryMessage[];
-  activeTab: { title: string; lang: Lang; code: string; fromMission: boolean };
+  /** `task` is the exercise text the learner pasted into the tab's Task box (may be empty). */
+  activeTab: { title: string; lang: Lang; code: string; fromMission: boolean; task?: string };
   lastRun: { output: string; endedWithError: boolean } | null;
   /** Models picked in Settings. Empty or missing means the server's default. */
   models?: { tutor?: string; judge?: string };
@@ -78,6 +79,8 @@ export const LIMITS = {
   historyMessages: 30,
   historyContent: 12_000,
   title: 200,
+  /** The Task box (exercise instructions pasted from a course). */
+  task: 6_000,
   /** Missions opened from one reply. Also stated in prompts/tutor-system.md. */
   missions: 10,
 };

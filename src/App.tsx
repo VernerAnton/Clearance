@@ -5,6 +5,8 @@ import { loadSettings, saveSettings, type Settings } from './lib/settings';
 import { loadTabs, newId, nextScratchTitle, saveTabs, uniqueTitle, type Lang, type Tab, type TabsState } from './lib/tabs';
 import { Chat, type ChatMessage } from './components/Chat';
 import { Rail } from './components/Rail';
+import { SideBar } from './components/SideBar';
+import { useSidePanel } from './hooks/useSidePanel';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
 import { Workspace } from './components/Workspace';
@@ -19,7 +21,7 @@ import REVIEW_PROMPT from '../prompts/review-button.md?raw';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
-  'Choose how much help you want on the left. It goes back to Clearance 1 after every message.';
+  'Choose how much help you want (Clearance 1 to 5). It goes back to 1 after every message.';
 
 let msgSeq = 0;
 const welcome = (): ChatMessage[] => [{ id: ++msgSeq, role: 'tutor', text: WELCOME }];
@@ -35,6 +37,18 @@ export function App() {
   const [layout, setLayout] = useState<Layout>(loadLayout);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const appRef = useRef<HTMLDivElement>(null);
+  // Side-panel layout: which of code and chat gets most of the height, and whether a
+  // reply arrived while the chat was the small one.
+  const side = useSidePanel(settings.layoutMode);
+  const [bigPane, setBigPane] = useState<'code' | 'chat'>('code');
+  const [unread, setUnread] = useState(false);
+  const bigPaneRef = useRef(bigPane);
+  bigPaneRef.current = bigPane;
+  const activatePane = (p: 'code' | 'chat') => {
+    if (bigPaneRef.current === p) return;
+    setBigPane(p);
+    if (p === 'chat') setUnread(false);
+  };
   const resetTimer = useRef<number | undefined>(undefined);
 
   const { tabs, activeId } = tabsState;
@@ -83,8 +97,11 @@ export function App() {
     [clearErrorLine],
   );
 
+  const updateTask = (task: string) =>
+    setTabsState((s) => ({ ...s, tabs: s.tabs.map((t) => (t.id === s.activeId ? { ...t, task } : t)) }));
+
   const newTab = (lang: Lang) => {
-    const tab = { id: newId(), title: nextScratchTitle(tabs, lang), lang, code: '', fromMission: false };
+    const tab = { id: newId(), title: nextScratchTitle(tabs, lang), lang, code: '', fromMission: false, task: '' };
     setTabsState((s) => ({ tabs: [...s.tabs, tab], activeId: tab.id }));
     setFocusTick((n) => n + 1);
   };
@@ -153,7 +170,7 @@ export function App() {
         level: m.hasLevels ? sentLevel : 1,
         message: prompt ?? text,
         history,
-        activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission },
+        activeTab: { title: tab.title, lang: tab.lang, code: tab.code, fromMission: tab.fromMission, task: tab.task },
         lastRun,
         models: { tutor: settings.tutorModel, judge: settings.judgeModel },
         thinking: settings.thinking,
@@ -180,6 +197,7 @@ export function App() {
               lang: mission.lang,
               code: mission.code,
               fromMission: true,
+              task: '',
             });
           }
           // Show the first new mission.
@@ -200,6 +218,8 @@ export function App() {
       }
       const reply: ChatMessage = { id: ++msgSeq, role: 'tutor', text: res.reply, history: remembered, chips };
       setMessages((ms) => [...ms, reply]);
+      // Don't swap panes under someone who's typing code: just mark the reply as new.
+      if (bigPaneRef.current === 'code') setUnread(true);
     } catch (err) {
       const message = err instanceof ChatFailed ? err.message : 'Something went wrong. Try again.';
       setMessages((ms) => [
@@ -219,19 +239,32 @@ export function App() {
 
   return (
     <div
-      className="app"
+      className={`app${side ? ' side' : ''}`}
       ref={appRef}
       style={{ '--rail-w': `${layout.railWidth}px`, '--chat-w': `${layout.chatWidth}px` } as CSSProperties}
     >
-      <Rail
-        mode={mode}
-        level={level}
-        resetNote={resetNote}
-        onMode={chooseMode}
-        onLevel={setLevel}
-        onNewMission={newMission}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
+      {side && (
+        <SideBar
+          mode={mode}
+          level={level}
+          resetNote={resetNote}
+          onMode={chooseMode}
+          onLevel={setLevel}
+          onNewMission={newMission}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
+      {!side && (
+        <Rail
+          mode={mode}
+          level={level}
+          resetNote={resetNote}
+          onMode={chooseMode}
+          onLevel={setLevel}
+          onNewMission={newMission}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
       {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />}
       <SettingsDialog
         open={settingsOpen}
@@ -240,16 +273,18 @@ export function App() {
         onResetLayout={() => setLayout({ ...DEFAULT_LAYOUT })}
         onClose={() => setSettingsOpen(false)}
       />
-      <Splitter
-        axis="x"
-        className="col-splitter rail-splitter"
-        label="Resize left panel"
-        value={layout.railWidth}
-        grow={1}
-        bounds={columnBounds('railWidth')}
-        onChange={(railWidth) => resize({ railWidth })}
-        onReset={() => resize({ railWidth: DEFAULT_LAYOUT.railWidth })}
-      />
+      {!side && (
+        <Splitter
+          axis="x"
+          className="col-splitter rail-splitter"
+          label="Resize left panel"
+          value={layout.railWidth}
+          grow={1}
+          bounds={columnBounds('railWidth')}
+          onChange={(railWidth) => resize({ railWidth })}
+          onReset={() => resize({ railWidth: DEFAULT_LAYOUT.railWidth })}
+        />
+      )}
       <Workspace
         tabs={tabs}
         activeId={activeId}
@@ -268,21 +303,25 @@ export function App() {
         onClose={closeTab}
         onNew={newTab}
         onCode={updateCode}
+        onTask={updateTask}
+        pane={side ? { size: bigPane === 'code' ? 'big' : 'small', onActivate: () => activatePane('code') } : undefined}
         onRun={run}
         onStop={runner.stop}
         onInput={runner.provideInput}
         onClearOutput={() => runner.clearOutput(activeId)}
       />
-      <Splitter
-        axis="x"
-        className="col-splitter chat-splitter"
-        label="Resize chat panel"
-        value={layout.chatWidth}
-        grow={-1}
-        bounds={columnBounds('chatWidth')}
-        onChange={(chatWidth) => resize({ chatWidth })}
-        onReset={() => resize({ chatWidth: DEFAULT_LAYOUT.chatWidth })}
-      />
+      {!side && (
+        <Splitter
+          axis="x"
+          className="col-splitter chat-splitter"
+          label="Resize chat panel"
+          value={layout.chatWidth}
+          grow={-1}
+          bounds={columnBounds('chatWidth')}
+          onChange={(chatWidth) => resize({ chatWidth })}
+          onReset={() => resize({ chatWidth: DEFAULT_LAYOUT.chatWidth })}
+        />
+      )}
       <Chat
         mode={mode}
         level={level}
@@ -295,6 +334,8 @@ export function App() {
         onSend={send}
         onReview={() => send('Review', REVIEW_PROMPT.trim())}
         canReview={active.code.trim() !== ''}
+        pane={side ? { size: bigPane === 'chat' ? 'big' : 'small', onActivate: () => activatePane('chat') } : undefined}
+        unread={side && unread}
       />
     </div>
   );
