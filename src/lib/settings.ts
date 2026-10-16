@@ -14,6 +14,8 @@ export interface Settings {
   autocomplete: boolean;
   /** Typing ( [ { " or ' also types the closing one. */
   closeBrackets: boolean;
+  /** Long lines continue on the next row instead of scrolling sideways. */
+  wrapLines: boolean;
   /** Follow the computer's setting, or force light or dark. */
   theme: Theme;
   /** Show the "What the tutor receives" panel, with blocked drafts. */
@@ -34,6 +36,8 @@ export const DEFAULT_SETTINGS: Settings = {
   liveLinting: false,
   autocomplete: false,
   closeBrackets: false,
+  // On: in a narrow window, sideways scrolling hides the ends of lines.
+  wrapLines: true,
   theme: 'system',
   debugPanel: false,
   tutorModel: '',
@@ -58,6 +62,7 @@ export function parseSettings(raw: string | null): Settings {
     liveLinting: bool('liveLinting'),
     autocomplete: bool('autocomplete'),
     closeBrackets: bool('closeBrackets'),
+    wrapLines: bool('wrapLines'),
     theme,
     debugPanel: bool('debugPanel'),
     // A model that's no longer on the list falls back to the server's default.

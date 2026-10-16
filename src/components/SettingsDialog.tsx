@@ -18,6 +18,7 @@ const EDITOR_OPTIONS = [
   ['liveLinting', 'Live linting', 'Underlines syntax errors while you type.'],
   ['autocomplete', 'Autocomplete', 'Suggests names and keywords while you type.'],
   ['closeBrackets', 'Auto-close brackets', 'Typing ( [ { or a quote adds the closing one.'],
+  ['wrapLines', 'Wrap long lines', 'Long lines continue on the next row (indented, without a line number) instead of scrolling sideways. Still one line of code.'],
 ] as const;
 
 const THINKING_NOTES: Record<Thinking, string> = {

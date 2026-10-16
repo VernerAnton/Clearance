@@ -4,6 +4,7 @@ import {
   EditorSelection,
   EditorState,
   RangeSet,
+  RangeSetBuilder,
   StateEffect,
   StateField,
   type Extension,
@@ -11,6 +12,9 @@ import {
 import {
   Decoration,
   EditorView,
+  ViewPlugin,
+  type DecorationSet,
+  type ViewUpdate,
   GutterMarker,
   drawSelection,
   lineNumberMarkers,
@@ -41,6 +45,8 @@ export interface EditorHelpers {
   liveLinting: boolean;
   autocomplete: boolean;
   closeBrackets: boolean;
+  /** Show long lines on several rows instead of scrolling sideways. */
+  wrapLines: boolean;
 }
 
 interface Props {
@@ -179,12 +185,49 @@ const syntaxLinter = linter(
   { delay: 600 },
 );
 
+/**
+ * Wrapped lines get a hanging indent: the extra rows of a long line start one level
+ * deeper than the line itself, so they can't be mistaken for lines of their own.
+ * (Each line gets padding for the indent, and a negative text-indent pulls its first
+ * row back to where it belongs. The font is monospaced, so `ch` is one character.)
+ */
+const hangingIndent = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = this.build(view);
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) this.decorations = this.build(update.view);
+    }
+    build(view: EditorView): DecorationSet {
+      const builder = new RangeSetBuilder<Decoration>();
+      for (const { from, to } of view.visibleRanges) {
+        for (let pos = from; pos <= to; ) {
+          const line = view.state.doc.lineAt(pos);
+          const lead = /^[ \t]*/.exec(line.text)![0].replace(/\t/g, '    ').length;
+          const hang = lead + 4;
+          builder.add(
+            line.from,
+            line.from,
+            Decoration.line({ attributes: { style: `padding-left: calc(${hang}ch + 6px); text-indent: -${hang}ch` } }),
+          );
+          pos = line.to + 1;
+        }
+      }
+      return builder.finish();
+    }
+  },
+  { decorations: (plugin) => plugin.decorations },
+);
+
 function helperExtensions(h: EditorHelpers): Extension[] {
   const out: Extension[] = [];
   if (h.liveLinting) out.push(syntaxLinter, lintGutter());
   // Suggestions come from the language: Python keywords, built-ins and names in the file; SQL keywords.
   if (h.autocomplete) out.push(autocompletion({ icons: false }));
   if (h.closeBrackets) out.push(closeBrackets(), keymap.of(closeBracketsKeymap));
+  if (h.wrapLines) out.push(EditorView.lineWrapping, hangingIndent);
   return out;
 }
 
@@ -267,10 +310,10 @@ export function CodeEditor({ tabId, lang, code, helpers, errorLine, focusTick, o
   }, [code, tabId]);
 
   // Turning a setting on or off.
-  const { liveLinting, autocomplete, closeBrackets: autoClose } = helpers;
+  const { liveLinting, autocomplete, closeBrackets: autoClose, wrapLines } = helpers;
   useEffect(() => {
     viewRef.current?.dispatch({ effects: helperConf.current.reconfigure(helperExtensions(latest.current.helpers)) });
-  }, [liveLinting, autocomplete, autoClose]);
+  }, [liveLinting, autocomplete, autoClose, wrapLines]);
 
   // Show (or clear) the error marker, and scroll to it.
   useEffect(() => {

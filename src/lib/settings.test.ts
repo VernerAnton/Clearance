@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, parseSettings } from './settings';
 
 describe('parseSettings', () => {
-  it('starts with every editor helper off and the theme following the computer', () => {
+  it('starts with the typing helpers off, wrapping on, and the theme following the computer', () => {
     expect(parseSettings(null)).toEqual({
       liveLinting: false,
       autocomplete: false,
       closeBrackets: false,
+      wrapLines: true,
       theme: 'system',
       debugPanel: false,
       tutorModel: '',
@@ -22,6 +23,7 @@ describe('parseSettings', () => {
       liveLinting: true,
       autocomplete: true,
       closeBrackets: true,
+      wrapLines: false,
       theme: 'dark',
       debugPanel: true,
       tutorModel: 'minimax/minimax-m3',
