@@ -3,12 +3,13 @@
 // Network first: when you're online you always get the newest version, straight
 // from the server. Each response is also saved, and the saved copy is only used
 // when the network fails (offline). The tutor (/api) is never saved: it needs
-// the internet.
+// the internet. Nor is /version.json: an old saved copy could announce a
+// "newer version" that isn't there.
 //
 // Build: __BUILD_ID__
 // (Replaced with the commit and build time by scripts/vite-plugin-build-info.ts.
-// The browser only notices a new deploy when this file's bytes change, so this
-// line is what makes the app's "a newer version is ready" prompt work.)
+// The browser only updates this worker when the file's bytes change, so this
+// line is what keeps the offline copy current after a deploy.)
 const CACHE = 'clearance-v1';
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -25,7 +26,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/') || url.pathname === '/version.json') return;
 
   event.respondWith(
     fetch(request)

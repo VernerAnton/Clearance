@@ -1,14 +1,25 @@
 // Build details for the version stamp, and the key to update detection.
-// - Puts the commit and build time into the app (__BUILD_COMMIT__, __BUILD_TIME__).
-// - Stamps the same build ID into dist/sw.js. Browsers only notice a new version
-//   when the service worker file's bytes change, and ours is otherwise identical
-//   in every build, so without this stamp the "newer version" prompt never fires.
+// - Puts the commit, build time and a unique build ID into the app (__BUILD_COMMIT__,
+//   __BUILD_TIME__, __BUILD_ID__).
+// - Writes dist/version.json with the same build ID (and APP_VERSION). The app compares
+//   its own build ID with this file's: different means a newer build is deployed.
+// - Stamps the build ID into dist/sw.js. Browsers only update a service worker when its
+//   file's bytes change, and ours is otherwise identical in every build, so without the
+//   stamp the offline copy would never pick up new code.
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 
 const PLACEHOLDER = '__BUILD_ID__';
+
+/** APP_VERSION from src/version.ts, for version.json (so the prompt can say which version is waiting). */
+function appVersion(): number | null {
+  const file = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'version.ts');
+  const match = readFileSync(file, 'utf8').match(/APP_VERSION = (\d+);/);
+  return match ? Number(match[1]) : null;
+}
 
 function commitSha(): string {
   // Cloudflare's build sets this; elsewhere ask git. A cosmetic label must never fail a build.
@@ -33,12 +44,17 @@ export function buildInfo(): Plugin {
   return {
     name: 'build-info',
     config: () => ({
-      define: { __BUILD_COMMIT__: JSON.stringify(commit), __BUILD_TIME__: JSON.stringify(time) },
+      define: {
+        __BUILD_COMMIT__: JSON.stringify(commit),
+        __BUILD_TIME__: JSON.stringify(time),
+        __BUILD_ID__: JSON.stringify(buildId),
+      },
     }),
     configResolved(config) {
       outDir = resolve(config.root, config.build.outDir);
     },
     closeBundle() {
+      writeFileSync(join(outDir, 'version.json'), JSON.stringify({ build: buildId, version: appVersion() }) + '\n');
       const sw = join(outDir, 'sw.js');
       if (!existsSync(sw)) return;
       const text = readFileSync(sw, 'utf8');

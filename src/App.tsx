@@ -268,7 +268,7 @@ export function App() {
           onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
-      {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} />}
+      {update.needRefresh && <UpdatePrompt onReload={update.updateApp} onDismiss={update.dismiss} newVersion={update.newVersion} />}
       <SettingsDialog
         open={settingsOpen}
         settings={settings}

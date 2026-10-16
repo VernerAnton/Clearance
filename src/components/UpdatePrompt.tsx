@@ -3,14 +3,16 @@ import { APP_VERSION } from '../version';
 interface Props {
   onReload: () => void;
   onDismiss: () => void;
+  /** The waiting version, if known. */
+  newVersion: number | null;
 }
 
 /** "A newer version is ready": offered, never forced. */
-export function UpdatePrompt({ onReload, onDismiss }: Props) {
+export function UpdatePrompt({ onReload, onDismiss, newVersion }: Props) {
   return (
     <div className="update-prompt" role="status">
       <div className="update-text">
-        <strong>A newer version is ready.</strong>
+        <strong>{newVersion && newVersion !== APP_VERSION ? `V${newVersion} is ready.` : 'A newer version is ready.'}</strong>
         <span className="hint block">You're on V{APP_VERSION}. Reloading keeps your tabs and settings.</span>
       </div>
       <div className="update-actions">
