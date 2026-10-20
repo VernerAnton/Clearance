@@ -28,6 +28,7 @@ interface Props {
   onOutputReset: () => void;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
+  onRename: (id: string, title: string) => void;
   onNew: (lang: Lang) => void;
   onCode: (code: string) => void;
   /** The Task box changed. */
@@ -132,10 +133,42 @@ function TaskBox({ task, onTask }: { task: string; onTask: (task: string) => voi
   );
 }
 
+/** The box that replaces a tab's name while you rename it. Enter or clicking away saves; Esc cancels. */
+function TabRename({ title, onDone }: { title: string; onDone: (title: string | null) => void }) {
+  const [value, setValue] = useState(title);
+  const done = useRef(false);
+  const finish = (result: string | null) => {
+    if (done.current) return; // Enter, then the blur that follows it: save once.
+    done.current = true;
+    onDone(result);
+  };
+  return (
+    <input
+      className="tab-rename"
+      autoFocus
+      onFocus={(e) => e.currentTarget.select()}
+      value={value}
+      maxLength={60}
+      size={Math.max(6, value.length + 1)}
+      aria-label="Tab name"
+      spellCheck={false}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => finish(value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') finish(value);
+        if (e.key === 'Escape') finish(null);
+      }}
+    />
+  );
+}
+
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function Workspace(props: Props) {
   const { tabs, activeId, output, errorLine, run, helpers, focusTick, onSelect, onClose, onNew, onCode, onTask, pane } = props;
+  const { onRename } = props;
+  // The tab whose name is being edited (double-click or F2 on a tab).
+  const [renaming, setRenaming] = useState<string | null>(null);
   const { onRun, onStop, onInput, onClearOutput, interactiveInput, stdinText, onStdinText } = props;
   const { outputHeight, onOutputHeight, onOutputReset } = props;
   const waitingHere = run?.tabId === activeId && run.phase === 'waiting';
@@ -195,25 +228,39 @@ export function Workspace(props: Props) {
         <div className="tablist" ref={tabsRef} onWheel={onTabsWheel} role="tablist" aria-label="Open files">
           {tabs.map((t) => (
             <div key={t.id} className="tab" data-active={t.id === activeId}>
-              <button
-                type="button"
-                role="tab"
-                className="sel"
-                aria-selected={t.id === activeId}
-                onClick={() => onSelect(t.id)}
-                title={t.fromMission ? 'Mission from the tutor' : 'Your tab'}
-              >
-                {t.fromMission && (
-                  <>
-                    <span className="mission-mark" aria-hidden="true">
-                      🎯
-                    </span>
-                    <span className="sr">Mission: </span>
-                  </>
-                )}
-                {t.title}
-                <span className="badge">{t.lang === 'sql' ? 'SQL' : 'PY'}</span>
-              </button>
+              {renaming === t.id ? (
+                <TabRename
+                  title={t.title}
+                  onDone={(title) => {
+                    setRenaming(null);
+                    if (title !== null) onRename(t.id, title);
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  role="tab"
+                  className="sel"
+                  aria-selected={t.id === activeId}
+                  onClick={() => onSelect(t.id)}
+                  onDoubleClick={() => setRenaming(t.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'F2') setRenaming(t.id);
+                  }}
+                  title={`${t.fromMission ? 'Mission from the tutor' : 'Your tab'}. Double-click to rename.`}
+                >
+                  {t.fromMission && (
+                    <>
+                      <span className="mission-mark" aria-hidden="true">
+                        🎯
+                      </span>
+                      <span className="sr">Mission: </span>
+                    </>
+                  )}
+                  {t.title}
+                  <span className="badge">{t.lang === 'sql' ? 'SQL' : 'PY'}</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="x"

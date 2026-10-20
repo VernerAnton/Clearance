@@ -179,7 +179,8 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; }
 .tablist { display: flex; gap: 2px; overflow-x: auto; min-width: 0; position: relative; }
 .tab { display: flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-bottom: 0; border-radius: 7px 7px 0 0; background: var(--paper); padding: 5px 4px 5px 10px; white-space: nowrap; font-size: 0.88rem; flex-shrink: 0; }
 .tab[data-active='true'] { background: var(--ed-bg); color: var(--ed-ink); border-color: var(--ed-bg); }
-.tab .sel { background: none; border: 0; padding: 0; display: flex; align-items: center; gap: 6px; }
+.tab .sel { background: none; border: 0; padding: 0; display: flex; align-items: center; gap: 6px; touch-action: manipulation; }
+.tab-rename { font: inherit; font-size: 0.88rem; color: inherit; background: var(--ed-gutter); border: 1px solid var(--neon); border-radius: 4px; padding: 0 4px; min-width: 0; outline: none; }
 .tab .badge { font-family: var(--font-code); font-size: 0.66rem; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: 0.75; }
 .tab .mission-mark { font-size: 0.8rem; }
 .tab .x { background: none; border: 0; padding: 0 5px; opacity: 0.6; font-size: 1.05rem; line-height: 1; border-radius: 4px; }

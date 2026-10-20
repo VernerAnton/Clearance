@@ -69,6 +69,14 @@ export function App() {
     const timer = window.setTimeout(() => saveTabs(tabsState), 300);
     return () => window.clearTimeout(timer);
   }, [tabsState]);
+  // ...and right away when leaving, so a change in the last moment before closing isn't lost.
+  const tabsRef = useRef(tabsState);
+  tabsRef.current = tabsState;
+  useEffect(() => {
+    const flush = () => saveTabs(tabsRef.current);
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, []);
 
   useEffect(() => saveSettings(settings), [settings]);
 
@@ -102,6 +110,16 @@ export function App() {
 
   const updateTask = (task: string) =>
     setTabsState((s) => ({ ...s, tabs: s.tabs.map((t) => (t.id === s.activeId ? { ...t, task } : t)) }));
+
+  // An empty name keeps the old one; a name another tab already has gets a number ("Evens 2").
+  const renameTab = (id: string, title: string) =>
+    setTabsState((s) => {
+      const name = title.trim();
+      const tab = s.tabs.find((t) => t.id === id);
+      if (!tab || !name || name === tab.title) return s;
+      const unique = uniqueTitle(s.tabs.filter((t) => t.id !== id), name);
+      return { ...s, tabs: s.tabs.map((t) => (t.id === id ? { ...t, title: unique } : t)) };
+    });
 
   const newTab = (lang: Lang) => {
     const tab = { id: newId(), title: nextScratchTitle(tabs, lang), lang, code: '', fromMission: false, task: '' };
@@ -305,6 +323,7 @@ export function App() {
         onOutputReset={() => resize({ outputHeight: DEFAULT_LAYOUT.outputHeight })}
         onSelect={(id) => setTabsState((s) => ({ ...s, activeId: id }))}
         onClose={closeTab}
+        onRename={renameTab}
         onNew={newTab}
         onCode={updateCode}
         onTask={updateTask}
