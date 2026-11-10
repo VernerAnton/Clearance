@@ -14,6 +14,7 @@ describe('parseSettings', () => {
       judgeModel: '',
       thinking: 'low',
       layoutMode: 'auto',
+      levelAfterSend: 'keep',
     });
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
@@ -30,6 +31,7 @@ describe('parseSettings', () => {
       judgeModel: 'typesafe:jev-latest',
       thinking: 'high',
       layoutMode: 'side',
+      levelAfterSend: 'reset',
     };
     expect(parseSettings(JSON.stringify(saved))).toEqual(saved);
   });

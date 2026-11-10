@@ -27,7 +27,7 @@ Clearance is a coding tutor web app. A learner writes Python or SQL in an in-bro
 
 ## Rules that must not be broken
 
-1. **The level lives in app state.** The UI sets it, the server validates it, and it resets to 1 after every sent message. Nothing the model says can change it.
+1. **The level lives in app state.** The UI sets it and the server validates it. After a message it stays where the learner put it, or goes back to 1 if they chose that in Settings → Clearance (the original design; the user asked for "stays" as the default). Nothing the model says can change it.
 2. **The API key never reaches the browser.** All model calls happen in the Worker. Secrets come from `.dev.vars` locally and Cloudflare secrets in production.
 3. **The tutor never edits existing tabs.** The only way model output enters the editor is a new tab created from a mission in Challenge mode.
 4. **Every tutor reply passes the guard pipeline** (code check, then judge at levels 1-2, retries, fallback) before the user sees it. See SPEC.md, Phase 5.

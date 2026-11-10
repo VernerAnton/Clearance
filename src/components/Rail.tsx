@@ -5,6 +5,8 @@ import { APP_VERSION } from '../version';
 interface Props {
   mode: ModeId;
   level: Level;
+  /** Settings: the level goes back to 1 after each message (otherwise it stays). */
+  levelResets: boolean;
   resetNote: string;
   onMode: (mode: ModeId) => void;
   onLevel: (level: Level) => void;
@@ -12,7 +14,7 @@ interface Props {
   onOpenSettings: () => void;
 }
 
-export function Rail({ mode, level, resetNote, onMode, onLevel, onNewMission, onOpenSettings }: Props) {
+export function Rail({ mode, level, levelResets, resetNote, onMode, onLevel, onNewMission, onOpenSettings }: Props) {
   const current = modeById(mode);
   const laddersOn = current.hasLevels;
   const rungRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -99,7 +101,8 @@ export function Rail({ mode, level, resetNote, onMode, onLevel, onNewMission, on
         </div>
         {laddersOn ? (
           <p className="hint">
-            Next reply at <strong>Clearance {level}: {levelInfo(level).name}</strong>. Resets to 1 after every message.
+            Next reply at <strong>Clearance {level}: {levelInfo(level).name}</strong>.{' '}
+            {levelResets ? 'Resets to 1 after every message.' : 'Stays until you change it.'}
           </p>
         ) : (
           <p className="hint">Explain mode has no clearance levels.</p>

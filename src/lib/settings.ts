@@ -6,6 +6,8 @@ export type Theme = 'system' | 'light' | 'dark';
 /** Auto: the side-panel layout when the window is narrow. Full / Side panel: always that one. */
 export type LayoutMode = 'auto' | 'full' | 'side';
 export const LAYOUT_MODES: LayoutMode[] = ['auto', 'full', 'side'];
+/** After a message is sent: keep the clearance level, or go back to 1 (the original design). */
+export type LevelAfterSend = 'keep' | 'reset';
 
 export interface Settings {
   /** Underline syntax errors while typing. */
@@ -27,6 +29,8 @@ export interface Settings {
   thinking: Thinking;
   /** Full three-column layout, or the narrow side-panel layout for next to a course site. */
   layoutMode: LayoutMode;
+  /** Whether the clearance level stays where you put it after sending, or goes back to 1. */
+  levelAfterSend: LevelAfterSend;
 }
 
 const STORAGE_KEY = 'clearance.settings.v1';
@@ -44,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   judgeModel: '',
   thinking: 'low',
   layoutMode: 'auto',
+  levelAfterSend: 'keep',
 };
 
 /** Read saved settings, keeping only values that make sense and defaulting the rest. */
@@ -70,6 +75,7 @@ export function parseSettings(raw: string | null): Settings {
     judgeModel: typeof data.judgeModel === 'string' && isJudgeModel(data.judgeModel) ? data.judgeModel : '',
     thinking: THINKING_LEVELS.includes(data.thinking as Thinking) ? (data.thinking as Thinking) : 'low',
     layoutMode: LAYOUT_MODES.includes(data.layoutMode as LayoutMode) ? (data.layoutMode as LayoutMode) : 'auto',
+    levelAfterSend: data.levelAfterSend === 'reset' ? 'reset' : 'keep',
   };
 }
 

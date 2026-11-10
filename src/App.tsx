@@ -22,7 +22,7 @@ import REVIEW_PROMPT from '../prompts/review-button.md?raw';
 
 const WELCOME =
   "Pick a mode and ask away. I can see the tab you have open and its last output, so there's no need to paste code.\n\n" +
-  'Choose how much help you want (Clearance 1 to 5). It goes back to 1 after every message.';
+  'Choose how much help you want (Clearance 1 to 5).';
 
 let msgSeq = 0;
 const welcome = (): ChatMessage[] => [{ id: ++msgSeq, role: 'tutor', text: WELCOME }];
@@ -143,9 +143,11 @@ export function App() {
   const { start } = runner;
   const run = useCallback(() => void start(activeRef.current), [start]);
 
+  const resetsLevel = settings.levelAfterSend === 'reset';
+
   const chooseMode = (m: ModeId) => {
     setMode(m);
-    setLevel(1);
+    if (resetsLevel) setLevel(1);
   };
 
   const [waiting, setWaiting] = useState(false);
@@ -177,13 +179,16 @@ export function App() {
     setMessages((ms) => [...ms, userMsg]);
     setWaiting(true);
 
-    // The level is for one message only: it goes back to 1 as soon as a message is sent.
-    if (m.hasLevels && sentLevel !== 1) {
-      setResetNote('Clearance reset: back to 1 for your next message.');
-      window.clearTimeout(resetTimer.current);
-      resetTimer.current = window.setTimeout(() => setResetNote(''), 3000);
+    // With "Go back to 1" (Settings), the level is for one message only. Either way the
+    // level is the app's: it's sent with the message and nothing the tutor says changes it.
+    if (resetsLevel) {
+      if (m.hasLevels && sentLevel !== 1) {
+        setResetNote('Clearance reset: back to 1 for your next message.');
+        window.clearTimeout(resetTimer.current);
+        resetTimer.current = window.setTimeout(() => setResetNote(''), 3000);
+      }
+      setLevel(1);
     }
-    setLevel(1);
 
     try {
       const res = await sendChat({
@@ -255,7 +260,7 @@ export function App() {
   const newMission = () => {
     if (waiting) return;
     setMessages(welcome());
-    setLevel(1);
+    if (resetsLevel) setLevel(1);
   };
 
   return (
@@ -279,6 +284,7 @@ export function App() {
         <Rail
           mode={mode}
           level={level}
+          levelResets={resetsLevel}
           resetNote={resetNote}
           onMode={chooseMode}
           onLevel={setLevel}

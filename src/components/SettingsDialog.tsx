@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { JUDGE_MODELS, TUTOR_MODELS, type ModelOption, type ServerConfig } from '../../shared/models';
 import { fetchServerConfig } from '../lib/api';
 import type { Thinking } from '../../shared/api';
-import type { LayoutMode, Settings, Theme } from '../lib/settings';
+import type { LayoutMode, LevelAfterSend, Settings, Theme } from '../lib/settings';
 import type { SyncStatus } from '../hooks/useCloudSync';
 
 interface Props {
@@ -161,6 +161,21 @@ export function SettingsDialog({ open, settings, onSettings, onResetLayout, onCl
               Reset panel sizes
             </button>
             <span className="hint">Or drag the lines between panels; double-click one to reset it.</span>
+          </div>
+        </section>
+
+        <section>
+          <h3>Clearance</h3>
+          <div className="field">
+            <label htmlFor="level-after-send">After you send a message, the level…</label>
+            <select
+              id="level-after-send"
+              value={settings.levelAfterSend}
+              onChange={(e) => set({ levelAfterSend: e.target.value as LevelAfterSend })}
+            >
+              <option value="keep">Stays where you put it</option>
+              <option value="reset">Goes back to 1 (pick the help you need each time)</option>
+            </select>
           </div>
         </section>
 
